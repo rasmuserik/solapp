@@ -134,8 +134,8 @@ Generated files
 
 # temporary code during development
 
-    project = loadProject __dirname
+    project = loadProject process.cwd()
     
     console.log "writing README.md"
-    fs.writeFileSync "README.md", genReadme project
+    fs.writeFileSync "#{project.dirname}/README.md", genReadme project
     
