@@ -1,0 +1,14 @@
+{
+    "fullname": "SolApp",
+    "author": "Rasmus Erik Voel Jensen (solsort.com)",
+    "description": "Utility/library for quicly making apps",
+    "name": "solapp",
+    "owner": "rasmuserik",
+    "version": "0.0.1",
+    "main": "solapp.js",
+    "scripts": {
+        "start": "coffee solapp.coffee start",
+        "test": "coffee solapp.coffee test"
+    },
+    "dependencies": {}
+}
