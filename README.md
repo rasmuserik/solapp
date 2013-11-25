@@ -1,6 +1,5 @@
 # SolApp
 [![ci](https://secure.travis-ci.org/rasmuserik/solapp.png)](http://travis-ci.org/rasmuserik/solapp)
-[![ci](https://ssl.solsort.com/_rasmuserik/solapp.png)](http://solsort.com/rasmuserik/solapp)
 
 Utility/library for quicly making apps
 
