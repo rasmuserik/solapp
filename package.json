@@ -4,7 +4,7 @@
     "description": "Utility/library for quicly making apps",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "main": "solapp.js",
     "scripts": {
         "start": "coffee solapp.coffee start",
