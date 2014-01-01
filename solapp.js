@@ -2,25 +2,42 @@
   var build, coffeesource, devserverJsonml, expandPackage, fs, genReadme, loadProject, project, projectFiles, sa, updateGitIgnore, _ref,
     __slice = [].slice;
 
-  coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js";
-
   sa = exports;
 
-  if (typeof window !== "undefined" && window !== null) {
-    window.isNodeJs = false;
+  sa.global = typeof global !== "undefined" && global !== null ? global : window;
+
+  if (typeof isNodeJs !== "boolean") {
+    sa.global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
   }
 
-  if (typeof isNodeJs !== "boolean" && (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0)) {
-    if (typeof global !== "undefined" && global !== null) {
-      global.isNodeJs = true;
+  exports.about = {
+    title: "SolApp",
+    description: "Framework for quickly creating apps",
+    dependencies: {
+      async: "*",
+      "coffee-script": "*",
+      express: "*",
+      glob: "*",
+      request: "*",
+      "socket.io": "*",
+      "socket.io-client": "*",
+      "uglify-js": "*"
+    },
+    npmjs: {},
+    keywords: ["framework", "html5", "phonegap"],
+    html5: {
+      disabled: true
+    },
+    bin: {
+      solapp: "./solapp.coffee"
     }
-  }
+  };
 
   if (isNodeJs) {
+    coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js";
     fs = require("fs");
+    require("coffee-script");
   }
-
-  require("coffee-script");
 
   sa.sleep = function(t, fn) {
     return setTimeout(fn, t * 1000);
@@ -50,25 +67,25 @@
     return setTimeout(fn, 0);
   };
 
-  sa.readFileSync = isNodeJs ? function(filename) {
-    var e;
-    try {
-      return fs.readFileSync(filename, "utf8");
-    } catch (_error) {
-      e = _error;
-      console.log("Warning, couldn't read \"" + filename + "\":\n" + e);
-      return "";
-    }
-  } : function() {
-    throw "sa.readFileSync not implemented on this platform";
-  };
+  if (isNodeJs) {
+    sa.readFileSync = function(filename) {
+      var e;
+      try {
+        return fs.readFileSync(filename, "utf8");
+      } catch (_error) {
+        e = _error;
+        console.log("Warning, couldn't read \"" + filename + "\":\n" + e);
+        return "";
+      }
+    };
+  }
 
   if (isNodeJs) {
     expandPackage = function(project) {
       var pkg, _base, _base1, _base2;
       pkg = (project["package"] != null ? project["package"] : project["package"] = {});
-      if (pkg.fullname == null) {
-        pkg.fullname = pkg.name || project.name;
+      if (pkg.title == null) {
+        pkg.title = pkg.name || project.name;
       }
       if (pkg.author == null) {
         pkg.author = "Rasmus Erik Voel Jensen (solsort.com)";
@@ -140,7 +157,7 @@
       if (fs.existsSync("" + project.dirname + "/meta/feature.png")) {
         result += "![" + pkg.name + "](https://raw.github.com/" + pkg.owner + "/" + pkg.name + "/master/meta/feature.png\n";
       }
-      result += "# " + (pkg.fullname || pkg.name) + "\n";
+      result += "# " + (pkg.title || pkg.name) + "\n";
       result += "[![ci](https://secure.travis-ci.org/" + pkg.owner + "/" + pkg.name + ".png)](http://travis-ci.org/" + pkg.owner + "/" + pkg.name + ")\n";
       result += "\n" + pkg.description + "\n";
       _ref1 = source.split("\n");
@@ -245,7 +262,7 @@
       "html", {
         manifest: "manifest.appcache"
       }, [
-        "head", ["title", project["package"].fullname], [
+        "head", ["title", project["package"].title], [
           "meta", {
             "http-equiv": "content-type",
             content: "text/html;charset=UTF-8"

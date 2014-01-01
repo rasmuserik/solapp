@@ -1,10 +1,10 @@
 {
-    "fullname": "SolApp",
+    "title": "SolApp",
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
     "description": "Framework for quickly creating apps",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.14",
+    "version": "0.0.17",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",
