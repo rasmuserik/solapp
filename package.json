@@ -6,9 +6,9 @@
     "owner": "rasmuserik",
     "version": "0.0.3",
     "main": "solapp.js",
-    "repository" : { 
-      "type" : "git", 
-      "url" : "http://github.com/rasmuserik/solapp.git"
+    "repository": {
+        "type": "git",
+        "url": "http://github.com/rasmuserik/solapp.git"
     },
     "scripts": {
         "start": "coffee solapp.coffee start",

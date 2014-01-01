@@ -118,7 +118,7 @@ Generated files
           isCode = true
         else
           line = line.replace /^\s*# ?/, ""
-          line = line.replace /(.*){{{(\d)(.*)/, (_, a, header, b) ->
+          line = line.replace new RegExp("(.*){{" + "{(\\d)(.*)"), (_, a, header, b) ->
             ("#" for i in [1..+header]).join("") + " " + (a + b).trim()
           isCode = false
     
