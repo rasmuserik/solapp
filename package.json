@@ -4,7 +4,7 @@
     "description": "Framework for quickly creating apps",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",
@@ -41,7 +41,5 @@
         "url": "http://github.com/rasmuserik/solapp.git"
     },
     "keywords": [],
-    "npm": {
-        "disabled": true
-    }
+    "npm": {}
 }
