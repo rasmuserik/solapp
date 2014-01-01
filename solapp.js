@@ -243,8 +243,22 @@
         test: function() {
           return build();
         },
-        commit: function() {
-          return build();
+        commit: function(opt) {
+          var msg, version;
+          msg = opt.args.join(" ").replace(/"/g, "\\\"");
+          version = project["package"].version.split(".");
+          version[2] = +version[2] + 1;
+          project["package"].version = version.join(".");
+          return build(function() {
+            var command;
+            command = "npm test &&            git commit -am \"" + msg + "\" &&           git pull &&           git push &&           npm publish";
+            return require("child_process").exec(command, function(err, stdout, stderr) {
+              console.log(err, stdout, stderr);
+              if (err) {
+                throw [command, err, stdout, stderr];
+              }
+            });
+          });
         },
         dist: function() {
           return build();

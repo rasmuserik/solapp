@@ -245,8 +245,21 @@ if isNodeJs and require.main == module then sa.nextTick ->
       build()
     test: ->
       build()
-    commit: ->
-      build()
+    commit: (opt) ->
+      msg = opt.args.join(" ").replace(/"/g, "\\\"")
+      version = project.package.version.split "."
+      version[2] = +version[2] + 1
+      project.package.version = version.join "."
+      build ->
+        command =
+          "npm test && 
+           git commit -am \"#{msg}\" &&
+           git pull &&
+           git push &&
+           npm publish"
+        require("child_process").exec command, (err, stdout, stderr) ->
+          console.log err, stdout, stderr
+          throw [command, err, stdout, stderr] if err
     dist: ->
       build()
   commands[undefined] = commands.start
