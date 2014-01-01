@@ -3,7 +3,6 @@
 
 Framework for quickly creating apps
 
-!/usr/bin/env coffee
 Work in progress, not running yet
 
 # About
@@ -185,6 +184,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
         result += "\n#{pkg.description}\n"
       
         for line in source.split("\n")
+          continue if line.trim() == "#!/usr/bin/env coffee"
       
           if (line.search /^\s*#/) == -1
             line = "    " + line

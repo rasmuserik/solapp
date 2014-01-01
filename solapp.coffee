@@ -167,6 +167,7 @@ if isNodeJs
     result += "\n#{pkg.description}\n"
   
     for line in source.split("\n")
+      continue if line.trim() == "#!/usr/bin/env coffee"
   
       if (line.search /^\s*#/) == -1
         line = "    " + line

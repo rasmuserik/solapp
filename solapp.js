@@ -139,6 +139,9 @@
       _ref1 = source.split("\n");
       for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
         line = _ref1[_i];
+        if (line.trim() === "#!/usr/bin/env coffee") {
+          continue;
+        }
         if ((line.search(/^\s*#/)) === -1) {
           line = "    " + line;
           isCode = true;
