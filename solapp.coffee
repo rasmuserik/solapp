@@ -67,6 +67,7 @@
 #   - compile coffeescript
 #   - preprocessing
 #     - `global?.isNodeJs = true if typeof isNodeJs != "boolean" and process?.versions?.node`
+#     - useful with`uglify-js -d isNodeJs=true -c ...`
 #   - dist: solsort.com (cache-manifest, add-to-home-screen, ie-pinned-site), android market, mozilla-marketplace, chrome-store (apple app-store, facebook, amazon, windows, blackberry, steam)
 # 
 #
@@ -81,14 +82,14 @@ global?.isNodeJs = true if typeof isNodeJs != "boolean" and process?.versions?.n
 sa.sleep = (t,fn) -> setTimeout fn, t * 1000
 #{{{3 nextTick
 sa.nextTick =
-  if isNodeJs?
+  if isNodeJs
     process.nextTick
   else
     (fn) -> setTimeout fn, 0
 #{{{3 readFileSync 
 # abstracted to return empty string on non-existant file, and add the ability to implement on other platforms than node
 sa.readFileSync =
-  if isNodeJs?
+  if isNodeJs
     (filename) ->
       try
         return (require "fs").readFileSync filename, "utf8"
@@ -99,7 +100,7 @@ sa.readFileSync =
      -> throw "sa.readFileSync not implemented on this platform"
 
 #{{{2 autoexpand package.json
-if isNodeJs?
+if isNodeJs
   expandPackage = (project) ->
     pkg = (project.package ?= {})
     pkg.fullname ?= pkg.name || project.name
@@ -119,7 +120,7 @@ if isNodeJs?
       url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
   
 #{{{2 create README.md
-if isNodeJs?
+if isNodeJs
   genReadme = (project) ->
     source = project.source
     pkg = project.package
@@ -166,7 +167,7 @@ loadProject = (dirname) ->
   result
 
 #{{{2 Build
-if isNodeJs?
+if isNodeJs
   project = loadProject process.cwd()
   build = ->
     console.log "writing package.json"
@@ -177,11 +178,12 @@ if isNodeJs?
     require("fs").writeFileSync "#{project.name}.js", require("coffee-script").compile(project.source)
 
 #{{{2 Main dispatch
-if isNodeJs? and require.main == module
+if isNodeJs and require.main == module
+  console.log process.argv
   sa.nextTick ->
+    require "coffee-script"
     require("./#{project.name}.coffee").main()
 
 #{{{1 main
 sa.main = (args...)->
   build()
-  console.log "main", args

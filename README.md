@@ -72,6 +72,7 @@ Generated files
   - compile coffeescript
   - preprocessing
     - `global?.isNodeJs = true if typeof isNodeJs != "boolean" and process?.versions?.node`
+    - useful with`uglify-js -d isNodeJs=true -c ...`
   - dist: solsort.com (cache-manifest, add-to-home-screen, ie-pinned-site), android market, mozilla-marketplace, chrome-store (apple app-store, facebook, amazon, windows, blackberry, steam)
 
 
@@ -93,7 +94,7 @@ Generated files
 ### nextTick
 
     sa.nextTick =
-      if isNodeJs?
+      if isNodeJs
         process.nextTick
       else
         (fn) -> setTimeout fn, 0
@@ -102,7 +103,7 @@ Generated files
 abstracted to return empty string on non-existant file, and add the ability to implement on other platforms than node
 
     sa.readFileSync =
-      if isNodeJs?
+      if isNodeJs
         (filename) ->
           try
             return (require "fs").readFileSync filename, "utf8"
@@ -115,7 +116,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
 
 ## autoexpand package.json
 
-    if isNodeJs?
+    if isNodeJs
       expandPackage = (project) ->
         pkg = (project.package ?= {})
         pkg.fullname ?= pkg.name || project.name
@@ -137,7 +138,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
 
 ## create README.md
 
-    if isNodeJs?
+    if isNodeJs
       genReadme = (project) ->
         source = project.source
         pkg = project.package
@@ -188,7 +189,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
 
 ## Build
 
-    if isNodeJs?
+    if isNodeJs
       project = loadProject process.cwd()
       build = ->
         console.log "writing package.json"
@@ -201,8 +202,10 @@ abstracted to return empty string on non-existant file, and add the ability to i
 
 ## Main dispatch
 
-    if isNodeJs? and require.main == module
+    if isNodeJs and require.main == module
+      console.log process.argv
       sa.nextTick ->
+        require "coffee-script"
         require("./#{project.name}.coffee").main()
     
 
@@ -210,9 +213,6 @@ abstracted to return empty string on non-existant file, and add the ability to i
 
     sa.main = (args...)->
       build()
-      console.log "main", args
-    
-    console.log isNodeJs
     
 
 
