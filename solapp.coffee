@@ -150,6 +150,8 @@ if isNodeJs
         "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
       ]
       phonegapPlugins: {}
+    pkg.npm ?=
+      disabled: true
     pkg.dependencies.solapp ?= "*" if pkg.name != "solapp"
     pkg.repository =
       type: "git"
@@ -251,12 +253,9 @@ if isNodeJs and require.main == module then sa.nextTick ->
       version[2] = +version[2] + 1
       project.package.version = version.join "."
       build ->
-        command = """
-          npm test &&
-          git commit -am \"#{msg}\" &&
-          git pull &&
-          git push &&
-          npm publish"""
+        command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
+        if !project.package.npm.disabled
+          command += " && npm publish"
         console.log "running:\n#{command}"
         require("child_process").exec command, (err, stdout, stderr) ->
           console.log stdout

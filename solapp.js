@@ -112,6 +112,11 @@
           phonegapPlugins: {}
         };
       }
+      if (pkg.npm == null) {
+        pkg.npm = {
+          disabled: true
+        };
+      }
       if (pkg.name !== "solapp") {
         if ((_base2 = pkg.dependencies).solapp == null) {
           _base2.solapp = "*";
@@ -251,7 +256,10 @@
           project["package"].version = version.join(".");
           return build(function() {
             var command;
-            command = "npm test &&\ngit commit -am \"" + msg + "\" &&\ngit pull &&\ngit push &&\nnpm publish";
+            command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
+            if (!project["package"].npm.disabled) {
+              command += " && npm publish";
+            }
             console.log("running:\n" + command);
             return require("child_process").exec(command, function(err, stdout, stderr) {
               console.log(stdout);
