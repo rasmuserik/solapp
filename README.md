@@ -1,7 +1,7 @@
 # solapp
 [![ci](https://secure.travis-ci.org/rasmuserik/solapp.png)](http://travis-ci.org/rasmuserik/solapp)
 
-Framework for simple app creation
+TODO: description here
 
 Work in progress, not running yet
 
@@ -57,12 +57,12 @@ Goal: Quickly create apps
 - generate README.md
 - compile to $APPNAME.js
 - isNodeJs - optional code - automatically removable for web environment
+- Automatically create .travis.yml
 
 ## Backlog
 
 - main/dispatch
 - Automatically update .gitignore
-- Automatically create .travis.yml
 - commit command
 - devserver command
 - dist command
@@ -82,8 +82,11 @@ Goal: Quickly create apps
 
     coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"
     
+    
     sa = exports
+    window?.isNodeJs = false
     global?.isNodeJs = true if typeof isNodeJs != "boolean" and process?.versions?.node
+    fs = require "fs" if isNodeJs
     
 
 ## utility functions
@@ -106,7 +109,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
       if isNodeJs
         (filename) ->
           try
-            return (require "fs").readFileSync filename, "utf8"
+            return fs.readFileSync filename, "utf8"
           catch e
             console.log "Warning, couldn't read \"#{filename}\":\n#{e}"
             return ""
@@ -157,7 +160,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
         source = project.source
         pkg = project.package
         result =""
-        result += "![#{pkg.name}](https://raw.github.com/#{pkg.owner}/#{pkg.name}/master/meta/feature.png\n" if (require "fs").existsSync "#{project.dirname}/meta/feature.png"
+        result += "![#{pkg.name}](https://raw.github.com/#{pkg.owner}/#{pkg.name}/master/meta/feature.png\n" if fs.existsSync "#{project.dirname}/meta/feature.png"
         result += "# #{pkg.fullname || pkg.name}\n"
         result += "[![ci](https://secure.travis-ci.org/#{pkg.owner}/#{pkg.name}.png)](http://travis-ci.org/#{pkg.owner}/#{pkg.name})\n"
         result += "\n#{pkg.description}\n"
@@ -184,6 +187,21 @@ abstracted to return empty string on non-existant file, and add the ability to i
         result += "[![repos](https://ssl.solsort.com/_solapp_#{pkg.owner}_#{pkg.name}.png)](https://github.com/#{pkg.owner}/#{pkg.name})\n"
       
         return result
+    
+
+## update .gitignore
+
+    if isNodeJs
+      updateGitIgnore = () ->
+        fs.readFile "#{project.dirname}/.gitignore", "utf8", (err, data) ->
+          data = "" if err
+          data = data.split("\n")
+          result = {}
+          for line in data
+            result[line] = true
+          result["node_modules"] = true
+          result["*.swp"] = true
+          fs.writeFile "#{project.dirname}/.gitignore", (Object.keys result).join("\n")+"\n", (err) -> throw err if err
       
 
 ## loadProject
@@ -206,12 +224,18 @@ abstracted to return empty string on non-existant file, and add the ability to i
     if isNodeJs
       project = loadProject process.cwd()
       build = ->
+        console.log "updating .gitignore"
+        updateGitIgnore()
+        if !fs.existsSync "#{project.dirname}/.travis.yml"
+          console.log "writing .travis.yml"
+          travis = "language: node_js\nnode_js:\n  - 0.10 \n"
+          fs.writeFile "#{project.dirname}/.travis.yml", travis, (err) -> throw err if err
         console.log "writing package.json"
-        (require "fs").writeFile "#{project.dirname}/package.json", "#{JSON.stringify project.package, null, 4}\n", (err) -> throw err if err
+        fs.writeFile "#{project.dirname}/package.json", "#{JSON.stringify project.package, null, 4}\n", (err) -> throw err if err
         console.log "writing README.md"
-        require("fs").writeFileSync "#{project.dirname}/README.md", genReadme project
+        fs.writeFile "#{project.dirname}/README.md", genReadme project, (err) -> throw err if err
         console.log "writing #{project.name}.js"
-        require("fs").writeFileSync "#{project.name}.js", require("coffee-script").compile(project.source)
+        fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), (err) -> throw err if err
     
 
 ## Main dispatch

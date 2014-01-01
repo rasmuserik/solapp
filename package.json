@@ -1,27 +1,33 @@
 {
     "fullname": "solapp",
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
-    "description": "Framework for simple app creation",
+    "description": "TODO: description here",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.2",
+    "version": "0.0.1",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",
         "test": "node ./node_modules/solapp/solapp.js test"
     },
-    "dependencies": {
-        "coffee-script": "*",
-        "socket.io": "*",
-        "socket.io-client": "*",
-        "async": "*",
-        "request": "*"
+    "dependencies": {},
+    "html5": {
+        "disabled": true,
+        "addToHomeScreen": false,
+        "orientation": "default",
+        "fullscreen": false,
+        "css": [
+            "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css",
+            "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
+        ],
+        "js": [
+            "//code.jquery.com/jquery-1.10.2.min.js",
+            "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
+        ],
+        "phonegapPlugins": {}
     },
     "repository": {
         "type": "git",
         "url": "http://github.com/rasmuserik/solapp.git"
-    },
-    "html5": {
-        "disabled": true
     }
 }
