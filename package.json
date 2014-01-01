@@ -4,13 +4,14 @@
     "description": "Framework for quickly creating apps",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.8",
+    "version": "0.0.14",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",
         "test": "node ./node_modules/solapp/solapp.js test"
     },
     "dependencies": {
+        "glob": "*",
         "coffee-script": "*",
         "socket.io": "*",
         "socket.io-client": "*",
@@ -19,19 +20,7 @@
         "request": "*"
     },
     "html5": {
-        "disabled": true,
-        "addToHomeScreen": false,
-        "orientation": "default",
-        "fullscreen": false,
-        "css": [
-            "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css",
-            "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
-        ],
-        "js": [
-            "//code.jquery.com/jquery-1.10.2.min.js",
-            "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
-        ],
-        "phonegapPlugins": {}
+        "disabled": true
     },
     "bin": {
         "solapp": "./solapp.coffee"

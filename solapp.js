@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, expandPackage, fs, genReadme, loadProject, project, sa, updateGitIgnore, _ref,
+  var build, coffeesource, devserverJsonml, expandPackage, fs, genReadme, loadProject, project, projectFiles, sa, updateGitIgnore, _ref,
     __slice = [].slice;
 
   coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js";
@@ -104,9 +104,11 @@
       if (pkg.html5 == null) {
         pkg.html5 = {
           disabled: true,
+          userScalable: false,
           addToHomeScreen: false,
           orientation: "default",
           fullscreen: false,
+          files: [],
           css: ["//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css", "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"],
           js: ["//code.jquery.com/jquery-1.10.2.min.js", "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"],
           phonegapPlugins: {}
@@ -211,25 +213,71 @@
     return result;
   };
 
+  projectFiles = function() {};
+
   if (isNodeJs) {
     build = function(done) {
-      var next, travis;
-      console.log("updating .gitignore");
+      var next, travis, version, _ref1;
       next = sa.whenDone(done);
+      console.log("writing package.json");
+      version = project["package"].version.split(".");
+      version[2] = +version[2] + 1;
+      project["package"].version = version.join(".");
+      fs.writeFile("" + project.dirname + "/package.json", "" + (JSON.stringify(project["package"], null, 4)) + "\n", next());
+      console.log("updating .gitignore");
       updateGitIgnore(next());
       if (!fs.existsSync("" + project.dirname + "/.travis.yml")) {
         console.log("writing .travis.yml");
         travis = "language: node_js\nnode_js:\n  - 0.10 \n";
         fs.writeFile("" + project.dirname + "/.travis.yml", travis, next());
       }
-      console.log("writing package.json");
-      fs.writeFile("" + project.dirname + "/package.json", "" + (JSON.stringify(project["package"], null, 4)) + "\n", next());
+      console.log("writing manifest.appcache");
+      fs.writeFile("" + project.dirname + "/manifest.appcache", "CACHE MANIFEST\n# " + project["package"].name + " " + project["package"].version + "\nCACHE\nindex.html\n" + (((((_ref1 = project["package"].html5) != null ? _ref1.files : void 0) != null) || []).join("\n")) + "\n" + (fs.existsSync("" + project.dirname + "/icon.png") ? "icon.png" : "") + "\nNETWORK\n*\nhttp://*\nhttps://*\n", next());
       console.log("writing README.md");
       fs.writeFile("" + project.dirname + "/README.md", genReadme(project), next());
       console.log("writing " + project.name + ".js");
       return fs.writeFile("" + project.name + ".js", require("coffee-script").compile(project.source), next());
     };
   }
+
+  devserverJsonml = function() {
+    return [
+      "html", {
+        manifest: "manifest.appcache"
+      }, [
+        "head", ["title", project["package"].fullname], [
+          "meta", {
+            "http-equiv": "content-type",
+            content: "text/html;charset=UTF-8"
+          }
+        ], [
+          "meta", {
+            "http-equiv": "content-type",
+            content: "IE=edge,chrome=1"
+          }
+        ], [
+          "meta", {
+            name: "HandheldFriendly",
+            content: "true"
+          }
+        ], [
+          "meta", {
+            name: "viewport",
+            content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,        " + (project["package"].userScalable ? "" : ", user-scalable=0")
+          }
+        ], [
+          "meta", {
+            name: "format-detection",
+            content: "telephone=no"
+          }
+        ]
+      ], ["body"]
+    ];
+  };
+
+  exports.main = function() {
+    return console.log(devserverJsonml());
+  };
 
   if (isNodeJs) {
     project = loadProject(process.cwd());
@@ -249,11 +297,8 @@
           return build();
         },
         commit: function(opt) {
-          var msg, version;
+          var msg;
           msg = opt.args.join(" ").replace(/"/g, "\\\"");
-          version = project["package"].version.split(".");
-          version[2] = +version[2] + 1;
-          project["package"].version = version.join(".");
           return build(function() {
             var command;
             command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";

@@ -49,6 +49,8 @@
 #
 #{{{2 Done
 #
+# - manifest.appcache
+# - commit command
 # - add command-line app when installing globally
 # - automatically update .gitignore
 # - generate/edit package.json
@@ -62,12 +64,11 @@
 # - 0.1 first working prototype: npm-modules, html5, phonegap-build
 #   - main/dispatch
 #   - devserver command
-#   - commit command
 #   - dist command
 #   - config.xml
-#   - manifest.appcache
 #   - generate index.html
 # - 0.2 module-dependencies and testing
+#   - optional appcache/index.html/$APPNAME.js/...
 #   - addToHomeScreen
 #   - scaled icons etc.
 #   - test framework
@@ -138,9 +139,11 @@ if isNodeJs
     pkg.dependencies ?= {}
     pkg.html5 ?=
       disabled: true
+      userScalable: false
       addToHomeScreen: false
       orientation: "default"
       fullscreen: false
+      files: []
       css: [
         "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"
         "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
@@ -219,21 +222,64 @@ loadProject = (dirname) ->
   result
 
 #{{{2 Build
+projectFiles = () ->
 if isNodeJs
   build = (done) ->
-    console.log "updating .gitignore"
     next = sa.whenDone done
+
+    console.log "writing package.json"
+    version = project.package.version.split "."
+    version[2] = +version[2] + 1
+    project.package.version = version.join "."
+    fs.writeFile "#{project.dirname}/package.json", "#{JSON.stringify project.package, null, 4}\n", next()
+
+    console.log "updating .gitignore"
     updateGitIgnore next()
+
     if !fs.existsSync "#{project.dirname}/.travis.yml"
       console.log "writing .travis.yml"
       travis = "language: node_js\nnode_js:\n  - 0.10 \n"
       fs.writeFile "#{project.dirname}/.travis.yml", travis, next()
-    console.log "writing package.json"
-    fs.writeFile "#{project.dirname}/package.json", "#{JSON.stringify project.package, null, 4}\n", next()
+
+    console.log "writing manifest.appcache"
+    fs.writeFile "#{project.dirname}/manifest.appcache", """
+      CACHE MANIFEST
+      # #{project.package.name} #{project.package.version}
+      CACHE
+      index.html
+      #{(project.package.html5?.files? || []).join "\n"}
+      #{if fs.existsSync "#{project.dirname}/icon.png" then "icon.png" else ""}
+      NETWORK
+      *
+      http://*
+      https://*
+
+    """, next()
+
     console.log "writing README.md"
     fs.writeFile "#{project.dirname}/README.md", genReadme(project), next()
+
     console.log "writing #{project.name}.js"
     fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), next()
+
+#{{{2 devserver jsonml
+devserverJsonml = () ->
+  ["html", {manifest: "manifest.appcache"},
+    ["head"
+      ["title", project.package.fullname]
+      ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
+      ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
+      ["meta", {name: "HandheldFriendly", content: "true"}]
+      ["meta", {name: "viewport", content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,
+        #{if project.package.userScalable then "" else ", user-scalable=0"}"}]
+      ["meta", {name: "format-detection", content: "telephone=no"}]
+    ]
+    ["body"
+    ]
+  ]
+
+exports.main = ->
+  console.log devserverJsonml()
 
 #{{{2 Main dispatch
 if isNodeJs
@@ -249,9 +295,6 @@ if isNodeJs and require.main == module then sa.nextTick ->
       build()
     commit: (opt) ->
       msg = opt.args.join(" ").replace(/"/g, "\\\"")
-      version = project.package.version.split "."
-      version[2] = +version[2] + 1
-      project.package.version = version.join "."
       build ->
         command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
         if !project.package.npm.disabled
