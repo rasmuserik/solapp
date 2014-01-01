@@ -1,18 +1,18 @@
 {
-    "fullname": "SolApp",
+    "fullname": "solapp",
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
-    "description": "Utility/library for quicly making apps",
+    "description": "TODO: description here",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.3",
+    "version": "0.0.1",
     "main": "solapp.js",
+    "scripts": {
+        "start": "node ./node_modules/solapp/solapp.js start",
+        "test": "node ./node_modules/solapp/solapp.js test"
+    },
+    "dependencies": {},
     "repository": {
         "type": "git",
         "url": "http://github.com/rasmuserik/solapp.git"
-    },
-    "scripts": {
-        "start": "coffee solapp.coffee start",
-        "test": "coffee solapp.coffee test"
-    },
-    "dependencies": {}
+    }
 }
