@@ -1,7 +1,7 @@
 {
     "fullname": "solapp",
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
-    "description": "TODO: description here",
+    "description": "Framework for simple app creation",
     "name": "solapp",
     "owner": "rasmuserik",
     "version": "0.0.2",
@@ -11,14 +11,17 @@
         "test": "node ./node_modules/solapp/solapp.js test"
     },
     "dependencies": {
-      "coffee-script": "*",
-      "socket.io": "*",
-      "socket.io-client": "*",
-      "async": "*",
-      "request": "*"
+        "coffee-script": "*",
+        "socket.io": "*",
+        "socket.io-client": "*",
+        "async": "*",
+        "request": "*"
     },
     "repository": {
         "type": "git",
         "url": "http://github.com/rasmuserik/solapp.git"
+    },
+    "html5": {
+        "disabled": true
     }
 }

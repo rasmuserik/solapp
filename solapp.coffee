@@ -45,29 +45,37 @@
 #   - phonegap-build & cordova (Google Play, iOS App Store, Windows Phone Store, Ubuntu Software Center, Windows Store, Mac App Store, BlackBerry World, Amazon Appstore, Steam Greenlight)
 #   - browser extension...
 #   - smarttv-apps...
-# - notes: NB:rss-ie-pinned-site
-#
-#{{{2 Dependencies
 #
 #{{{2 Done
 #
+# - generate/edit package.json
+# - generate README.md
+# - compile to $APPNAME.js
+# - isNodeJs - optional code - automatically removable for web environment
+#
 #{{{2 Backlog
 #
+# - main/dispatch
 # - Automatically update .gitignore
 # - Automatically create .travis.yml
+# - commit command
+# - devserver command
+# - dist command
 # - generate index.html
-# - addToHomeScreen
 # - manifest.appcache
 # - config.xml
+# - addToHomeScreen
+# - test framework
+# - scaled icons etc.
 # - test framework
 # - phantomjs-test
 # - minify build
 #
 #{{{1 Literate source code
 #
-#{{{2 definitions/config
-coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"
 #{{{2 initial stuff
+coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"
+
 sa = exports
 global?.isNodeJs = true if typeof isNodeJs != "boolean" and process?.versions?.node
 
