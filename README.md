@@ -276,15 +276,17 @@ abstracted to return empty string on non-existant file, and add the ability to i
           version[2] = +version[2] + 1
           project.package.version = version.join "."
           build ->
-            command =
-              "npm test && 
-               git commit -am \"#{msg}\" &&
-               git pull &&
-               git push &&
-               npm publish"
+            command = """
+              npm test &&
+              git commit -am \"#{msg}\" &&
+              git pull &&
+              git push &&
+              npm publish"""
+            console.log "running:\n#{command}"
             require("child_process").exec command, (err, stdout, stderr) ->
-              console.log err, stdout, stderr
-              throw [command, err, stdout, stderr] if err
+              console.log stdout
+              console.log stderr
+              throw err if err
         dist: ->
           build()
       commands[undefined] = commands.start

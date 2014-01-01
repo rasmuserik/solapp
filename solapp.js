@@ -251,11 +251,13 @@
           project["package"].version = version.join(".");
           return build(function() {
             var command;
-            command = "npm test &&            git commit -am \"" + msg + "\" &&           git pull &&           git push &&           npm publish";
+            command = "npm test &&\ngit commit -am \"" + msg + "\" &&\ngit pull &&\ngit push &&\nnpm publish";
+            console.log("running:\n" + command);
             return require("child_process").exec(command, function(err, stdout, stderr) {
-              console.log(err, stdout, stderr);
+              console.log(stdout);
+              console.log(stderr);
               if (err) {
-                throw [command, err, stdout, stderr];
+                throw err;
               }
             });
           });

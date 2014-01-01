@@ -4,7 +4,7 @@
     "description": "Framework for quickly creating apps",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",
