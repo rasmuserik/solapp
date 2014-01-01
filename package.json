@@ -1,16 +1,23 @@
 {
-    "fullname": "solapp",
+    "fullname": "SolApp",
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
-    "description": "TODO: description here",
+    "description": "Framwork for quickly creating apps",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.1",
+    "version": "0.0.4",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",
         "test": "node ./node_modules/solapp/solapp.js test"
     },
-    "dependencies": {},
+    "dependencies": {
+        "coffee-script": "*",
+        "socket.io": "*",
+        "socket.io-client": "*",
+        "async": "*",
+        "express": "*",
+        "request": "*"
+    },
     "html5": {
         "disabled": true,
         "addToHomeScreen": false,

@@ -1,7 +1,7 @@
-# solapp
+# SolApp
 [![ci](https://secure.travis-ci.org/rasmuserik/solapp.png)](http://travis-ci.org/rasmuserik/solapp)
 
-TODO: description here
+Framwork for quickly creating apps
 
 Work in progress, not running yet
 
@@ -53,6 +53,7 @@ Goal: Quickly create apps
 
 ## Done
 
+- automatically update .gitignore
 - generate/edit package.json
 - generate README.md
 - compile to $APPNAME.js
@@ -62,7 +63,6 @@ Goal: Quickly create apps
 ## Backlog
 
 - main/dispatch
-- Automatically update .gitignore
 - commit command
 - devserver command
 - dist command
