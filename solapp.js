@@ -20,8 +20,30 @@
     fs = require("fs");
   }
 
+  require("coffee-script");
+
   sa.sleep = function(t, fn) {
     return setTimeout(fn, t * 1000);
+  };
+
+  sa.whenDone = function(done) {
+    var count, results;
+    count = 0;
+    results = [];
+    return function() {
+      var idx;
+      idx = count;
+      ++count;
+      return function() {
+        var args;
+        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+        args.push(idx);
+        results.push(args);
+        if (results.length === count) {
+          return typeof done === "function" ? done(results) : void 0;
+        }
+      };
+    };
   };
 
   sa.nextTick = isNodeJs ? process.nextTick : function(fn) {
@@ -54,14 +76,17 @@
       if (pkg.description == null) {
         pkg.description = "TODO: description here";
       }
+      if (pkg.keywords == null) {
+        pkg.keywords = [];
+      }
       if (pkg.name == null) {
         pkg.name = project.name;
       }
-      if (pkg.owner == null) {
-        pkg.owner = "rasmuserik";
-      }
       if (pkg.version == null) {
         pkg.version = "0.0.1";
+      }
+      if (pkg.owner == null) {
+        pkg.owner = "rasmuserik";
       }
       pkg.main = pkg.name + ".js";
       if (pkg.scripts == null) {
@@ -145,7 +170,7 @@
   }
 
   if (isNodeJs) {
-    updateGitIgnore = function() {
+    updateGitIgnore = function(done) {
       return fs.readFile("" + project.dirname + "/.gitignore", "utf8", function(err, data) {
         var line, result, _i, _len;
         if (err) {
@@ -159,11 +184,7 @@
         }
         result["node_modules"] = true;
         result["*.swp"] = true;
-        return fs.writeFile("" + project.dirname + "/.gitignore", (Object.keys(result)).join("\n") + "\n", function(err) {
-          if (err) {
-            throw err;
-          }
-        });
+        return fs.writeFile("" + project.dirname + "/.gitignore", (Object.keys(result)).join("\n") + "\n", done);
       });
     };
   }
@@ -183,53 +204,64 @@
   };
 
   if (isNodeJs) {
-    project = loadProject(process.cwd());
-    build = function() {
-      var travis;
+    build = function(done) {
+      var next, travis;
       console.log("updating .gitignore");
-      updateGitIgnore();
+      next = sa.whenDone(done);
+      updateGitIgnore(next());
       if (!fs.existsSync("" + project.dirname + "/.travis.yml")) {
         console.log("writing .travis.yml");
         travis = "language: node_js\nnode_js:\n  - 0.10 \n";
-        fs.writeFile("" + project.dirname + "/.travis.yml", travis, function(err) {
-          if (err) {
-            throw err;
-          }
-        });
+        fs.writeFile("" + project.dirname + "/.travis.yml", travis, next());
       }
       console.log("writing package.json");
-      fs.writeFile("" + project.dirname + "/package.json", "" + (JSON.stringify(project["package"], null, 4)) + "\n", function(err) {
-        if (err) {
-          throw err;
-        }
-      });
+      fs.writeFile("" + project.dirname + "/package.json", "" + (JSON.stringify(project["package"], null, 4)) + "\n", next());
       console.log("writing README.md");
-      fs.writeFile("" + project.dirname + "/README.md", genReadme(project, function(err) {
-        if (err) {
-          throw err;
-        }
-      }));
+      fs.writeFile("" + project.dirname + "/README.md", genReadme(project), next());
       console.log("writing " + project.name + ".js");
-      return fs.writeFile("" + project.name + ".js", require("coffee-script").compile(project.source), function(err) {
-        if (err) {
-          throw err;
-        }
-      });
+      return fs.writeFile("" + project.name + ".js", require("coffee-script").compile(project.source), next());
     };
   }
 
+  if (isNodeJs) {
+    project = loadProject(process.cwd());
+    if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
+      fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "");
+    }
+  }
+
   if (isNodeJs && require.main === module) {
-    console.log(process.argv);
     sa.nextTick(function() {
-      require("coffee-script");
-      return require("./" + project.name + ".coffee").main();
+      var command, commands, fn;
+      commands = {
+        start: function() {
+          return build();
+        },
+        test: function() {
+          return build();
+        },
+        commit: function() {
+          return build();
+        },
+        dist: function() {
+          return build();
+        }
+      };
+      commands[void 0] = commands.start;
+      command = process.argv[2];
+      fn = commands[process.argv[2]] || require("./" + project.name + ".coffee").main;
+      return typeof fn === "function" ? fn({
+        cmd: command,
+        args: process.argv.slice(3)
+      }) : void 0;
     });
   }
 
-  sa.main = function() {
-    var args;
-    args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-    return build();
+  sa.main = function(arg) {
+    console.log(arg);
+    return build(function(result) {
+      return console.log("Building done");
+    });
   };
 
 }).call(this);

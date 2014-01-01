@@ -1,3 +1,4 @@
+#!/usr/bin/env coffee
 # Work in progress, not running yet
 #
 #{{{1 About
@@ -55,21 +56,23 @@
 # - isNodeJs - optional code - automatically removable for web environment
 # - Automatically create .travis.yml
 #
-#{{{2 Backlog
+#{{{2 Roadmap
 #
-# - main/dispatch
-# - commit command
-# - devserver command
-# - dist command
-# - generate index.html
-# - manifest.appcache
-# - config.xml
-# - addToHomeScreen
-# - test framework
-# - scaled icons etc.
-# - test framework
-# - phantomjs-test
-# - minify build
+# - 0.1 first working prototype: npm-modules, html5, phonegap-build
+#   - main/dispatch
+#   - devserver command
+#   - dist command
+#   - config.xml
+#   - manifest.appcache
+#   - generate index.html
+# - 0.2 module-dependencies and testing
+#   - commit command
+#   - make globally installed command-line app
+#   - addToHomeScreen
+#   - scaled icons etc.
+#   - test framework
+#   - phantomjs-test
+#   - minify build
 #
 #{{{1 Literate source code
 #
@@ -81,10 +84,23 @@ sa = exports
 window?.isNodeJs = false
 global?.isNodeJs = true if typeof isNodeJs != "boolean" and process?.versions?.node
 fs = require "fs" if isNodeJs
+require "coffee-script"
 
 #{{{2 utility functions
 #{{{3 sleep
 sa.sleep = (t,fn) -> setTimeout fn, t * 1000
+#{{{3 whenDone(fn) -> ()->fn
+sa.whenDone = (done) ->
+  count = 0
+  results = []
+  ->
+    idx = count
+    ++count
+    (args...) ->
+      args.push idx
+      results.push args
+      done? results if results.length == count
+
 #{{{3 nextTick
 sa.nextTick =
   if isNodeJs
@@ -111,9 +127,10 @@ if isNodeJs
     pkg.fullname ?= pkg.name || project.name
     pkg.author ?= "Rasmus Erik Voel Jensen (solsort.com)"
     pkg.description ?= "TODO: description here"
+    pkg.keywords ?= []
     pkg.name ?= project.name
-    pkg.owner ?= "rasmuserik"
     pkg.version ?= "0.0.1"
+    pkg.owner ?= "rasmuserik"
     pkg.main = pkg.name + ".js"
     pkg.scripts ?= {}
     pkg.scripts.start ?= "node ./node_modules/solapp/solapp.js start"
@@ -174,7 +191,7 @@ if isNodeJs
 
 #{{{2 update .gitignore
 if isNodeJs
-  updateGitIgnore = () ->
+  updateGitIgnore = (done) ->
     fs.readFile "#{project.dirname}/.gitignore", "utf8", (err, data) ->
       data = "" if err
       data = data.split("\n")
@@ -183,7 +200,7 @@ if isNodeJs
         result[line] = true
       result["node_modules"] = true
       result["*.swp"] = true
-      fs.writeFile "#{project.dirname}/.gitignore", (Object.keys result).join("\n")+"\n", (err) -> throw err if err
+      fs.writeFile "#{project.dirname}/.gitignore", (Object.keys result).join("\n")+"\n", done
   
 #{{{2 loadProject
 
@@ -200,28 +217,47 @@ loadProject = (dirname) ->
 
 #{{{2 Build
 if isNodeJs
-  project = loadProject process.cwd()
-  build = ->
+  build = (done) ->
     console.log "updating .gitignore"
-    updateGitIgnore()
+    next = sa.whenDone done
+    updateGitIgnore next()
     if !fs.existsSync "#{project.dirname}/.travis.yml"
       console.log "writing .travis.yml"
       travis = "language: node_js\nnode_js:\n  - 0.10 \n"
-      fs.writeFile "#{project.dirname}/.travis.yml", travis, (err) -> throw err if err
+      fs.writeFile "#{project.dirname}/.travis.yml", travis, next()
     console.log "writing package.json"
-    fs.writeFile "#{project.dirname}/package.json", "#{JSON.stringify project.package, null, 4}\n", (err) -> throw err if err
+    fs.writeFile "#{project.dirname}/package.json", "#{JSON.stringify project.package, null, 4}\n", next()
     console.log "writing README.md"
-    fs.writeFile "#{project.dirname}/README.md", genReadme project, (err) -> throw err if err
+    fs.writeFile "#{project.dirname}/README.md", genReadme(project), next()
     console.log "writing #{project.name}.js"
-    fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), (err) -> throw err if err
+    fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), next()
 
 #{{{2 Main dispatch
-if isNodeJs and require.main == module
-  console.log process.argv
-  sa.nextTick ->
-    require "coffee-script"
-    require("./#{project.name}.coffee").main()
+if isNodeJs
+  project = loadProject process.cwd()
+  if !fs.existsSync "#{project.dirname}/#{project.name}.coffee"
+    fs.writeFileSync "#{project.dirname}/#{project.name}.coffee", ""
+
+if isNodeJs and require.main == module then sa.nextTick ->
+  commands =
+    start: ->
+      build()
+    test: ->
+      build()
+    commit: ->
+      build()
+    dist: ->
+      build()
+  commands[undefined] = commands.start
+  command = process.argv[2]
+  fn = commands[process.argv[2]] || require("./#{project.name}.coffee").main
+  fn? {
+    cmd: command
+    args: process.argv.slice(3)
+  }
 
 #{{{1 main
-sa.main = (args...)->
-  build()
+sa.main = (arg)->
+  console.log arg
+  build (result) ->
+    console.log "Building done"

@@ -33,8 +33,12 @@
         ],
         "phonegapPlugins": {}
     },
+    "bin": {
+        "solapp": "./solapp.coffee"
+    },
     "repository": {
         "type": "git",
         "url": "http://github.com/rasmuserik/solapp.git"
-    }
+    },
+    "keywords": []
 }
