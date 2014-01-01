@@ -49,6 +49,7 @@
 #
 #{{{2 Done
 #
+# - add command-line app when installing globally
 # - automatically update .gitignore
 # - generate/edit package.json
 # - generate README.md
@@ -61,13 +62,12 @@
 # - 0.1 first working prototype: npm-modules, html5, phonegap-build
 #   - main/dispatch
 #   - devserver command
+#   - commit command
 #   - dist command
 #   - config.xml
 #   - manifest.appcache
 #   - generate index.html
 # - 0.2 module-dependencies and testing
-#   - commit command
-#   - make globally installed command-line app
 #   - addToHomeScreen
 #   - scaled icons etc.
 #   - test framework
@@ -255,9 +255,3 @@ if isNodeJs and require.main == module then sa.nextTick ->
     cmd: command
     args: process.argv.slice(3)
   }
-
-#{{{1 main
-sa.main = (arg)->
-  console.log arg
-  build (result) ->
-    console.log "Building done"

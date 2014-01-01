@@ -1,7 +1,7 @@
 # SolApp
 [![ci](https://secure.travis-ci.org/rasmuserik/solapp.png)](http://travis-ci.org/rasmuserik/solapp)
 
-Framwork for quickly creating apps
+Framework for quickly creating apps
 
 !/usr/bin/env coffee
 Work in progress, not running yet
@@ -54,6 +54,7 @@ Goal: Quickly create apps
 
 ## Done
 
+- add command-line app when installing globally
 - automatically update .gitignore
 - generate/edit package.json
 - generate README.md
@@ -66,13 +67,12 @@ Goal: Quickly create apps
 - 0.1 first working prototype: npm-modules, html5, phonegap-build
   - main/dispatch
   - devserver command
+  - commit command
   - dist command
   - config.xml
   - manifest.appcache
   - generate index.html
 - 0.2 module-dependencies and testing
-  - commit command
-  - make globally installed command-line app
   - addToHomeScreen
   - scaled icons etc.
   - test framework
@@ -281,14 +281,6 @@ abstracted to return empty string on non-existant file, and add the ability to i
         cmd: command
         args: process.argv.slice(3)
       }
-    
-
-# main
-
-    sa.main = (arg)->
-      console.log arg
-      build (result) ->
-        console.log "Building done"
     
 
 

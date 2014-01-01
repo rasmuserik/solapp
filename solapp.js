@@ -257,11 +257,4 @@
     });
   }
 
-  sa.main = function(arg) {
-    console.log(arg);
-    return build(function(result) {
-      return console.log("Building done");
-    });
-  };
-
 }).call(this);
