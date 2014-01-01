@@ -4,13 +4,19 @@
     "description": "TODO: description here",
     "name": "solapp",
     "owner": "rasmuserik",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",
         "test": "node ./node_modules/solapp/solapp.js test"
     },
-    "dependencies": {},
+    "dependencies": {
+      "coffee-script": "*",
+      "socket.io": "*",
+      "socket.io-client": "*",
+      "async": "*",
+      "request": "*"
+    },
     "repository": {
         "type": "git",
         "url": "http://github.com/rasmuserik/solapp.git"
