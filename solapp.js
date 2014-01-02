@@ -143,9 +143,6 @@
         url: "http://github.com/" + pkg.owner + "/" + pkg.name + ".git"
       };
     };
-  }
-
-  if (isNodeJs) {
     genReadme = function(project) {
       var isCode, line, pkg, prevWasCode, result, source, _i, _len, _ref1;
       source = project.source;
@@ -191,9 +188,6 @@
       result += "[![repos](https://ssl.solsort.com/_solapp_" + pkg.owner + "_" + pkg.name + ".png)](https://github.com/" + pkg.owner + "/" + pkg.name + ")\n";
       return result;
     };
-  }
-
-  if (isNodeJs) {
     updateGitIgnore = function(done) {
       return fs.readFile("" + project.dirname + "/.gitignore", "utf8", function(err, data) {
         var line, result, _i, _len;
@@ -211,67 +205,59 @@
         return fs.writeFile("" + project.dirname + "/.gitignore", (Object.keys(result)).join("\n") + "\n", done);
       });
     };
-  }
-
-  ensureCoffeeSource = function() {
-    if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
-      return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n#\nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\nsa = require \"solapp\" if isNodeJs\n#" + "{" + "{{1 Meta information\nexports.about =\n  fullname: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n");
-    }
-  };
-
-  ensureSolAppInstalled = function(done) {
-    var command;
-    if (fs.existsSync("" + __dirname + "/node_modules/solapp")) {
-      return done();
-    }
-    console.log("installing solapp...");
-    command = fs.existsSync("" + __dirname + "/../solapp") ? "mkdir node_modules; ln -s `pwd`/../solapp node_modules/solapp" : "npm install solapp";
-    return require("child_process").exec(command, function(err, stdout, stderr) {
-      if (err) {
-        throw err;
+    ensureCoffeeSource = function() {
+      if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
+        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n#\nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\nsa = require \"solapp\" if isNodeJs\n#" + "{" + "{{1 Meta information\nexports.about =\n  fullname: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n");
       }
-      console.log(stdout);
-      console.log(stderr);
-      return done();
-    });
-  };
-
-  ensureGit = function(done) {
-    if (fs.existsSync("" + project.dirname + "/.git")) {
-      return typeof done === "function" ? done() : void 0;
-    }
-    console.log("creating git repository...");
-    return require("child_process").exec("git init && git add . && git commit -am \"initial commit\"", function(err, stdout, stderr) {
-      if (err) {
-        throw err;
+    };
+    ensureSolAppInstalled = function(done) {
+      var command;
+      if (fs.existsSync("" + __dirname + "/node_modules/solapp")) {
+        return done();
       }
-      console.log(stdout);
-      console.log(stderr);
-      return typeof done === "function" ? done() : void 0;
-    });
-  };
-
-  project = void 0;
-
-  loadProject = function(dirname, done) {
-    return ensureSolAppInstalled(function() {
-      var name, pkg;
-      pkg = JSON.parse((sa.readFileSync(dirname + "/package.json")) || "{}");
-      name = pkg.name || dirname.split("/").slice(-1)[0];
-      project = {
-        dirname: dirname,
-        name: name,
-        "package": pkg
-      };
-      ensureCoffeeSource();
-      project.source = sa.readFileSync("" + dirname + "/" + project.name + ".coffee");
-      project.module = require("" + dirname + "/" + project.name + ".coffee");
-      expandPackage();
-      return done(project);
-    });
-  };
-
-  if (isNodeJs) {
+      console.log("installing solapp...");
+      command = fs.existsSync("" + __dirname + "/../solapp") ? "mkdir node_modules; ln -s `pwd`/../solapp node_modules/solapp" : "npm install solapp";
+      return require("child_process").exec(command, function(err, stdout, stderr) {
+        if (err) {
+          throw err;
+        }
+        console.log(stdout);
+        console.log(stderr);
+        return done();
+      });
+    };
+    ensureGit = function(done) {
+      if (fs.existsSync("" + project.dirname + "/.git")) {
+        return typeof done === "function" ? done() : void 0;
+      }
+      console.log("creating git repository...");
+      return require("child_process").exec("git init && git add . && git commit -am \"initial commit\"", function(err, stdout, stderr) {
+        if (err) {
+          throw err;
+        }
+        console.log(stdout);
+        console.log(stderr);
+        return typeof done === "function" ? done() : void 0;
+      });
+    };
+    project = void 0;
+    loadProject = function(dirname, done) {
+      return ensureSolAppInstalled(function() {
+        var name, pkg;
+        pkg = JSON.parse((sa.readFileSync(dirname + "/package.json")) || "{}");
+        name = pkg.name || dirname.split("/").slice(-1)[0];
+        project = {
+          dirname: dirname,
+          name: name,
+          "package": pkg
+        };
+        ensureCoffeeSource();
+        project.source = sa.readFileSync("" + dirname + "/" + project.name + ".coffee");
+        project.module = require("" + dirname + "/" + project.name + ".coffee");
+        expandPackage();
+        return done(project);
+      });
+    };
     build = function(done) {
       var next, travis, version, _ref1;
       next = sa.whenDone(function() {
@@ -294,46 +280,41 @@
       console.log("writing " + project.name + ".js");
       return fs.writeFile("" + project.name + ".js", require("coffee-script").compile(project.source), next());
     };
+    devserverJsonml = function() {
+      return [
+        "html", {
+          manifest: "manifest.appcache"
+        }, [
+          "head", ["title", project["package"].title], [
+            "meta", {
+              "http-equiv": "content-type",
+              content: "text/html;charset=UTF-8"
+            }
+          ], [
+            "meta", {
+              "http-equiv": "content-type",
+              content: "IE=edge,chrome=1"
+            }
+          ], [
+            "meta", {
+              name: "HandheldFriendly",
+              content: "true"
+            }
+          ], [
+            "meta", {
+              name: "viewport",
+              content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,          " + (project["package"].userScalable ? "" : ", user-scalable=0")
+            }
+          ], [
+            "meta", {
+              name: "format-detection",
+              content: "telephone=no"
+            }
+          ]
+        ], ["body"]
+      ];
+    };
   }
-
-  devserverJsonml = function() {
-    return [
-      "html", {
-        manifest: "manifest.appcache"
-      }, [
-        "head", ["title", project["package"].title], [
-          "meta", {
-            "http-equiv": "content-type",
-            content: "text/html;charset=UTF-8"
-          }
-        ], [
-          "meta", {
-            "http-equiv": "content-type",
-            content: "IE=edge,chrome=1"
-          }
-        ], [
-          "meta", {
-            name: "HandheldFriendly",
-            content: "true"
-          }
-        ], [
-          "meta", {
-            name: "viewport",
-            content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,        " + (project["package"].userScalable ? "" : ", user-scalable=0")
-          }
-        ], [
-          "meta", {
-            name: "format-detection",
-            content: "telephone=no"
-          }
-        ]
-      ], ["body"]
-    ];
-  };
-
-  exports.main = function() {
-    return console.log(devserverJsonml());
-  };
 
   if (isNodeJs && require.main === module) {
     sa.nextTick(function() {

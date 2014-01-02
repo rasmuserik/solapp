@@ -143,6 +143,9 @@ sa.extend = (target, sources...) ->
     for key, val of source
       target[key] = val
 #{{{3 whenDone(fn) -> ()->fn
+#
+# Utility function for combining several callbacks into a single one. `fn = sa.whenDone(done)` returns a function `fn` where each call `done1 = fn(); done2 = fn(); ...` returns new callback functions, such that when all of `done1 done2 ...` has been called once, then done will be called. 
+#
 sa.whenDone = (done) ->
   count = 0
   results = []
@@ -155,11 +158,7 @@ sa.whenDone = (done) ->
       done? results if results.length == count
 
 #{{{3 nextTick
-sa.nextTick =
-  if isNodeJs
-    process.nextTick
-  else
-    (fn) -> setTimeout fn, 0
+sa.nextTick = if isNodeJs then process.nextTick else (fn) -> setTimeout fn, 0
 #{{{3 readFileSync 
 # abstracted to return empty string on non-existant file, and add the ability to implement on other platforms than node
 if isNodeJs
@@ -171,8 +170,9 @@ if isNodeJs
         console.log "Warning, couldn't read \"#{filename}\":\n#{e}"
         return ""
 
-#{{{2 autoexpand package.json
+#{{{2 SolApp app build/creation
 if isNodeJs
+  #{{{3 autoexpand package.json
   expandPackage = () ->
     version = (project.package.version || "0.0.1").split "."
     version[2] = +version[2] + 1
@@ -194,8 +194,7 @@ if isNodeJs
       type: "git"
       url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
   
-#{{{2 create README.md
-if isNodeJs
+  #{{{3 create README.md
   genReadme = (project) ->
     source = project.source
     pkg = project.package
@@ -229,8 +228,7 @@ if isNodeJs
   
     return result
 
-#{{{2 update .gitignore
-if isNodeJs
+  #{{{3 update .gitignore
   updateGitIgnore = (done) ->
     fs.readFile "#{project.dirname}/.gitignore", "utf8", (err, data) ->
       data = "" if err
@@ -242,78 +240,77 @@ if isNodeJs
       result["*.swp"] = true
       fs.writeFile "#{project.dirname}/.gitignore", (Object.keys result).join("\n")+"\n", done
   
-#{{{2 ensureCoffeeSource
-ensureCoffeeSource = ->
-  if !fs.existsSync "#{project.dirname}/#{project.name}.coffee"
-    fs.writeFileSync "#{project.dirname}/#{project.name}.coffee", """
-#!/bin/env coffee
-##{"{"}{{1 Boilerplate
-#
-# Define `isNodeJs` in a way such that it can be optimised away by uglify-js
-#
-if typeof isNodeJs != "boolean"
-  (global? || window?).isNodeJs = if process?.versions?.node then true else false
-sa = require "solapp" if isNodeJs
-##{"{"}{{1 Meta information
-exports.about =
-  fullname: "#{project.name}"
-  description: "..."
-  html5:
-    css: [
-      "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"
-      "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
-    ]
-    js: [
-      "//code.jquery.com/jquery-1.10.2.min.js"
-      "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
-    ]
-    files: [
-    ]
-
-"""
-#{{{2 ensureSolAppInstalled
-ensureSolAppInstalled = (done) ->
-  return done() if fs.existsSync "#{__dirname}/node_modules/solapp"
-  console.log "installing solapp..."
-  command = if fs.existsSync "#{__dirname}/../solapp"
-      "mkdir node_modules; ln -s `pwd`/../solapp node_modules/solapp"
-    else
-      "npm install solapp"
-  require("child_process").exec command, (err, stdout, stderr) ->
-    throw err if err
-    console.log stdout
-    console.log stderr
-    done()
-
-#{{{2 ensureGit
-ensureGit = (done) ->
-  return done?() if fs.existsSync "#{project.dirname}/.git"
-  console.log "creating git repository..."
-  require("child_process").exec "git init && git add . && git commit -am \"initial commit\"", (err, stdout, stderr) ->
-    throw err if err
-    console.log stdout
-    console.log stderr
-    done?()
-
-
-#{{{2 loadProject
-project = undefined
-loadProject = (dirname, done) ->
-  ensureSolAppInstalled ->
-    pkg = JSON.parse (sa.readFileSync dirname + "/package.json") || "{}"
-    name = pkg.name || dirname.split("/").slice(-1)[0]
-    project =
-      dirname: dirname
-      name: name
-      package: pkg
-    ensureCoffeeSource()
-    project.source = sa.readFileSync "#{dirname}/#{project.name}.coffee"
-    project.module = require("#{dirname}/#{project.name}.coffee")
-    expandPackage()
-    done project
-
-#{{{2 Build
-if isNodeJs
+  #{{{3 ensureCoffeeSource
+  ensureCoffeeSource = ->
+    if !fs.existsSync "#{project.dirname}/#{project.name}.coffee"
+      fs.writeFileSync "#{project.dirname}/#{project.name}.coffee", """
+  #!/bin/env coffee
+  ##{"{"}{{1 Boilerplate
+  #
+  # Define `isNodeJs` in a way such that it can be optimised away by uglify-js
+  #
+  if typeof isNodeJs != "boolean"
+    (global? || window?).isNodeJs = if process?.versions?.node then true else false
+  sa = require "solapp" if isNodeJs
+  ##{"{"}{{1 Meta information
+  exports.about =
+    fullname: "#{project.name}"
+    description: "..."
+    html5:
+      css: [
+        "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"
+        "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
+      ]
+      js: [
+        "//code.jquery.com/jquery-1.10.2.min.js"
+        "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
+      ]
+      files: [
+      ]
+  
+  """
+  #{{{3 ensureSolAppInstalled
+  ensureSolAppInstalled = (done) ->
+    return done() if fs.existsSync "#{__dirname}/node_modules/solapp"
+    console.log "installing solapp..."
+    command = if fs.existsSync "#{__dirname}/../solapp"
+        "mkdir node_modules; ln -s `pwd`/../solapp node_modules/solapp"
+      else
+        "npm install solapp"
+    require("child_process").exec command, (err, stdout, stderr) ->
+      throw err if err
+      console.log stdout
+      console.log stderr
+      done()
+  
+  #{{{3 ensureGit
+  ensureGit = (done) ->
+    return done?() if fs.existsSync "#{project.dirname}/.git"
+    console.log "creating git repository..."
+    require("child_process").exec "git init && git add . && git commit -am \"initial commit\"", (err, stdout, stderr) ->
+      throw err if err
+      console.log stdout
+      console.log stderr
+      done?()
+  
+  
+  #{{{3 loadProject
+  project = undefined
+  loadProject = (dirname, done) ->
+    ensureSolAppInstalled ->
+      pkg = JSON.parse (sa.readFileSync dirname + "/package.json") || "{}"
+      name = pkg.name || dirname.split("/").slice(-1)[0]
+      project =
+        dirname: dirname
+        name: name
+        package: pkg
+      ensureCoffeeSource()
+      project.source = sa.readFileSync "#{dirname}/#{project.name}.coffee"
+      project.module = require("#{dirname}/#{project.name}.coffee")
+      expandPackage()
+      done project
+  
+  #{{{3 Actual build function
   build = (done) ->
     next = sa.whenDone ->
       ensureGit done
@@ -352,25 +349,22 @@ if isNodeJs
     console.log "writing #{project.name}.js"
     fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), next()
 
-#{{{2 devserver jsonml
-devserverJsonml = () ->
-  ["html", {manifest: "manifest.appcache"},
-    ["head"
-      ["title", project.package.title]
-      ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
-      ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
-      ["meta", {name: "HandheldFriendly", content: "true"}]
-      ["meta", {name: "viewport", content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,
-        #{if project.package.userScalable then "" else ", user-scalable=0"}"}]
-      ["meta", {name: "format-detection", content: "telephone=no"}]
+  #{{{3 devserver jsonml
+  devserverJsonml = () ->
+    ["html", {manifest: "manifest.appcache"},
+      ["head"
+        ["title", project.package.title]
+        ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
+        ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
+        ["meta", {name: "HandheldFriendly", content: "true"}]
+        ["meta", {name: "viewport", content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,
+          #{if project.package.userScalable then "" else ", user-scalable=0"}"}]
+        ["meta", {name: "format-detection", content: "telephone=no"}]
+      ]
+      ["body"
+      ]
     ]
-    ["body"
-    ]
-  ]
-
-exports.main = ->
-  console.log devserverJsonml()
-
+  
 #{{{2 Main dispatch
 if isNodeJs and require.main == module then sa.nextTick ->
   loadProject process.cwd(), ->
