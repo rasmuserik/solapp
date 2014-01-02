@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, devserverJsonml, expandPackage, fs, genReadme, loadProject, project, projectFiles, sa, updateGitIgnore, _ref,
+  var build, coffeesource, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, loadProject, project, sa, updateGitIgnore, _ref,
     __slice = [].slice;
 
   sa = exports;
@@ -25,9 +25,6 @@
     },
     npmjs: {},
     keywords: ["framework", "html5", "phonegap"],
-    html5: {
-      disabled: true
-    },
     bin: {
       solapp: "./solapp.coffee"
     }
@@ -41,6 +38,25 @@
 
   sa.sleep = function(t, fn) {
     return setTimeout(fn, t * 1000);
+  };
+
+  sa.extend = function() {
+    var key, source, sources, target, val, _i, _len, _results;
+    target = arguments[0], sources = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+    _results = [];
+    for (_i = 0, _len = sources.length; _i < _len; _i++) {
+      source = sources[_i];
+      _results.push((function() {
+        var _results1;
+        _results1 = [];
+        for (key in source) {
+          val = source[key];
+          _results1.push(target[key] = val);
+        }
+        return _results1;
+      })());
+    }
+    return _results;
   };
 
   sa.whenDone = function(done) {
@@ -81,26 +97,20 @@
   }
 
   if (isNodeJs) {
-    expandPackage = function(project) {
-      var pkg, _base, _base1, _base2;
-      pkg = (project["package"] != null ? project["package"] : project["package"] = {});
+    expandPackage = function() {
+      var pkg, version, _base, _base1, _base2, _ref1;
+      version = (project["package"].version || "0.0.1").split(".");
+      version[2] = +version[2] + 1;
+      pkg = project["package"] = {
+        name: project.name,
+        version: version.join(".")
+      };
+      sa.extend(pkg, project.module.about || {});
       if (pkg.title == null) {
-        pkg.title = pkg.name || project.name;
+        pkg.title = pkg.name;
       }
       if (pkg.author == null) {
         pkg.author = "Rasmus Erik Voel Jensen (solsort.com)";
-      }
-      if (pkg.description == null) {
-        pkg.description = "TODO: description here";
-      }
-      if (pkg.keywords == null) {
-        pkg.keywords = [];
-      }
-      if (pkg.name == null) {
-        pkg.name = project.name;
-      }
-      if (pkg.version == null) {
-        pkg.version = "0.0.1";
       }
       if (pkg.owner == null) {
         pkg.owner = "rasmuserik";
@@ -115,26 +125,13 @@
       if ((_base1 = pkg.scripts).test == null) {
         _base1.test = "node ./node_modules/solapp/solapp.js test";
       }
+      if ((_ref1 = pkg.html5) != null) {
+        if (_ref1.files == null) {
+          _ref1.files = [];
+        }
+      }
       if (pkg.dependencies == null) {
         pkg.dependencies = {};
-      }
-      if (pkg.html5 == null) {
-        pkg.html5 = {
-          disabled: true,
-          userScalable: false,
-          addToHomeScreen: false,
-          orientation: "default",
-          fullscreen: false,
-          files: [],
-          css: ["//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css", "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"],
-          js: ["//code.jquery.com/jquery-1.10.2.min.js", "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"],
-          phonegapPlugins: {}
-        };
-      }
-      if (pkg.npm == null) {
-        pkg.npm = {
-          disabled: true
-        };
       }
       if (pkg.name !== "solapp") {
         if ((_base2 = pkg.dependencies).solapp == null) {
@@ -216,26 +213,70 @@
     };
   }
 
-  loadProject = function(dirname) {
-    var name, pkg, result;
-    pkg = JSON.parse((sa.readFileSync(dirname + "/package.json")) || "{}");
-    name = pkg.name || dirname.split("/").slice(-1)[0];
-    result = {
-      dirname: dirname,
-      name: name,
-      "package": pkg,
-      source: sa.readFileSync("" + dirname + "/" + name + ".coffee")
-    };
-    expandPackage(result);
-    return result;
+  ensureCoffeeSource = function() {
+    if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
+      return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n#\nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\nsa = require \"solapp\" if isNodeJs\n#" + "{" + "{{1 Meta information\nexports.about =\n  fullname: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n");
+    }
   };
 
-  projectFiles = function() {};
+  ensureSolAppInstalled = function(done) {
+    var command;
+    if (fs.existsSync("" + __dirname + "/node_modules/solapp")) {
+      return done();
+    }
+    console.log("installing solapp...");
+    command = fs.existsSync("" + __dirname + "/../solapp") ? "mkdir node_modules; ln -s `pwd`/../solapp node_modules/solapp" : "npm install solapp";
+    return require("child_process").exec(command, function(err, stdout, stderr) {
+      if (err) {
+        throw err;
+      }
+      console.log(stdout);
+      console.log(stderr);
+      return done();
+    });
+  };
+
+  ensureGit = function(done) {
+    if (fs.existsSync("" + project.dirname + "/.git")) {
+      return typeof done === "function" ? done() : void 0;
+    }
+    console.log("creating git repository...");
+    return require("child_process").exec("git init && git add . && git commit -am \"initial commit\"", function(err, stdout, stderr) {
+      if (err) {
+        throw err;
+      }
+      console.log(stdout);
+      console.log(stderr);
+      return typeof done === "function" ? done() : void 0;
+    });
+  };
+
+  project = void 0;
+
+  loadProject = function(dirname, done) {
+    return ensureSolAppInstalled(function() {
+      var name, pkg;
+      pkg = JSON.parse((sa.readFileSync(dirname + "/package.json")) || "{}");
+      name = pkg.name || dirname.split("/").slice(-1)[0];
+      project = {
+        dirname: dirname,
+        name: name,
+        "package": pkg
+      };
+      ensureCoffeeSource();
+      project.source = sa.readFileSync("" + dirname + "/" + project.name + ".coffee");
+      project.module = require("" + dirname + "/" + project.name + ".coffee");
+      expandPackage();
+      return done(project);
+    });
+  };
 
   if (isNodeJs) {
     build = function(done) {
       var next, travis, version, _ref1;
-      next = sa.whenDone(done);
+      next = sa.whenDone(function() {
+        return ensureGit(done);
+      });
       console.log("writing package.json");
       version = project["package"].version.split(".");
       version[2] = +version[2] + 1;
@@ -243,13 +284,11 @@
       fs.writeFile("" + project.dirname + "/package.json", "" + (JSON.stringify(project["package"], null, 4)) + "\n", next());
       console.log("updating .gitignore");
       updateGitIgnore(next());
-      if (!fs.existsSync("" + project.dirname + "/.travis.yml")) {
-        console.log("writing .travis.yml");
-        travis = "language: node_js\nnode_js:\n  - 0.10 \n";
-        fs.writeFile("" + project.dirname + "/.travis.yml", travis, next());
-      }
+      console.log("writing .travis.yml");
+      travis = "language: node_js\nnode_js:\n  - 0.10 \n";
+      fs.writeFile("" + project.dirname + "/.travis.yml", travis, next());
       console.log("writing manifest.appcache");
-      fs.writeFile("" + project.dirname + "/manifest.appcache", "CACHE MANIFEST\n# " + project["package"].name + " " + project["package"].version + "\nCACHE\nindex.html\n" + (((((_ref1 = project["package"].html5) != null ? _ref1.files : void 0) != null) || []).join("\n")) + "\n" + (fs.existsSync("" + project.dirname + "/icon.png") ? "icon.png" : "") + "\nNETWORK\n*\nhttp://*\nhttps://*\n", next());
+      fs.writeFile("" + project.dirname + "/manifest.appcache", "CACHE MANIFEST\n# " + project["package"].name + " " + project["package"].version + "\nCACHE\nindex.html\n" + ((((_ref1 = project["package"].html5) != null ? _ref1.files : void 0) || []).join("\n")) + "\n" + (fs.existsSync("" + project.dirname + "/icon.png") ? "icon.png" : "") + "\nNETWORK\n*\nhttp://*\nhttps://*\n", next());
       console.log("writing README.md");
       fs.writeFile("" + project.dirname + "/README.md", genReadme(project), next());
       console.log("writing " + project.name + ".js");
@@ -296,53 +335,48 @@
     return console.log(devserverJsonml());
   };
 
-  if (isNodeJs) {
-    project = loadProject(process.cwd());
-    if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
-      fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "");
-    }
-  }
-
   if (isNodeJs && require.main === module) {
     sa.nextTick(function() {
-      var command, commands, fn;
-      commands = {
-        start: function() {
-          return build();
-        },
-        test: function() {
-          return build();
-        },
-        commit: function(opt) {
-          var msg;
-          msg = opt.args.join(" ").replace(/"/g, "\\\"");
-          return build(function() {
-            var command;
-            command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
-            if (!project["package"].npm.disabled) {
-              command += " && npm publish";
-            }
-            console.log("running:\n" + command);
-            return require("child_process").exec(command, function(err, stdout, stderr) {
-              console.log(stdout);
-              console.log(stderr);
-              if (err) {
-                throw err;
+      return loadProject(process.cwd(), function() {
+        var command, commands, fn;
+        commands = {
+          start: function() {
+            return build();
+          },
+          test: function() {
+            return build();
+          },
+          commit: function(opt) {
+            var msg;
+            msg = opt.args.join(" ").replace(/"/g, "\\\"");
+            return build(function() {
+              var command;
+              command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
+              if (project["package"].npm) {
+                command += " && npm publish";
               }
+              console.log("running:\n" + command);
+              return require("child_process").exec(command, function(err, stdout, stderr) {
+                console.log(stdout);
+                console.log(stderr);
+                if (err) {
+                  throw err;
+                }
+              });
             });
-          });
-        },
-        dist: function() {
-          return build();
-        }
-      };
-      commands[void 0] = commands.start;
-      command = process.argv[2];
-      fn = commands[process.argv[2]] || require("./" + project.name + ".coffee").main;
-      return typeof fn === "function" ? fn({
-        cmd: command,
-        args: process.argv.slice(3)
-      }) : void 0;
+          },
+          dist: function() {
+            return build();
+          }
+        };
+        commands[void 0] = commands.start;
+        command = process.argv[2];
+        fn = commands[process.argv[2]] || project.module.main;
+        return typeof fn === "function" ? fn({
+          cmd: command,
+          args: process.argv.slice(3)
+        }) : void 0;
+      });
     });
   }
 

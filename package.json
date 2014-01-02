@@ -1,34 +1,36 @@
 {
-    "title": "SolApp",
-    "author": "Rasmus Erik Voel Jensen (solsort.com)",
-    "description": "Framework for quickly creating apps",
     "name": "solapp",
+    "version": "0.0.37",
+    "title": "SolApp",
+    "description": "Framework for quickly creating apps",
+    "dependencies": {
+        "async": "*",
+        "coffee-script": "*",
+        "express": "*",
+        "glob": "*",
+        "request": "*",
+        "socket.io": "*",
+        "socket.io-client": "*",
+        "uglify-js": "*"
+    },
+    "npmjs": {},
+    "keywords": [
+        "framework",
+        "html5",
+        "phonegap"
+    ],
+    "bin": {
+        "solapp": "./solapp.coffee"
+    },
+    "author": "Rasmus Erik Voel Jensen (solsort.com)",
     "owner": "rasmuserik",
-    "version": "0.0.19",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",
         "test": "node ./node_modules/solapp/solapp.js test"
     },
-    "dependencies": {
-        "glob": "*",
-        "coffee-script": "*",
-        "socket.io": "*",
-        "socket.io-client": "*",
-        "async": "*",
-        "express": "*",
-        "request": "*"
-    },
-    "html5": {
-        "disabled": true
-    },
-    "bin": {
-        "solapp": "./solapp.coffee"
-    },
     "repository": {
         "type": "git",
         "url": "http://github.com/rasmuserik/solapp.git"
-    },
-    "keywords": [],
-    "npm": {}
+    }
 }
