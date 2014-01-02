@@ -385,33 +385,44 @@ if isNodeJs
     ]
   
 #{{{1 Main dispatch
-if isNodeJs and require.main == module then sa.nextTick ->
-  loadProject process.cwd(), ->
-    commands =
-      start: ->
-        build()
-      test: ->
-        build()
-      commit: (opt) ->
-        msg = opt.args.join(" ").replace(/"/g, "\\\"")
-        build ->
-          command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
-          if project.package.npmjs
-            command += " && npm publish"
-          console.log "running:\n#{command}"
-          require("child_process").exec command, (err, stdout, stderr) ->
-            console.log stdout
-            console.log stderr
-            throw err if err
-      dist: ->
-        build()
-    commands[undefined] = commands.start
-    command = process.argv[2]
-    fn = commands[process.argv[2]] || project.module.main
-    fn?(sa.extend {}, sa, {
-      cmd: command
-      args: process.argv.slice(3)
-      setStyle: -> undefined
-      setContent: -> undefined
-      done: -> undefined
-    })
+if isNodeJs then do ->
+  #{{{2 devserver
+  devserver = (opt) ->
+    build ->
+      undefined
+
+  #{{{2 commit
+  commit = (opt) ->
+    msg = opt.args.join(" ").replace(/"/g, "\\\"")
+    build ->
+      command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
+      if project.package.npmjs
+        command += " && npm publish"
+      console.log "running:\n#{command}"
+      require("child_process").exec command, (err, stdout, stderr) ->
+        console.log stdout
+        console.log stderr
+        throw err if err
+
+  #{{{2 dist
+  dist = (opt) ->
+    build()
+
+  #{{{2 main dispatch
+  if require.main == module then sa.nextTick ->
+    loadProject process.cwd(), ->
+      commands =
+        start: devserver
+        test: -> build() #TODO
+        commit: commit
+        dist: build
+      commands[undefined] = commands.start
+      command = process.argv[2]
+      fn = commands[process.argv[2]] || project.module.main
+      fn?(sa.extend {}, sa, {
+        cmd: command
+        args: process.argv.slice(3)
+        setStyle: -> undefined
+        setContent: -> undefined
+        done: -> undefined
+      })

@@ -307,58 +307,68 @@
     };
   }
 
-  if (isNodeJs && require.main === module) {
-    sa.nextTick(function() {
-      return loadProject(process.cwd(), function() {
-        var command, commands, fn;
-        commands = {
-          start: function() {
-            return build();
-          },
-          test: function() {
-            return build();
-          },
-          commit: function(opt) {
-            var msg;
-            msg = opt.args.join(" ").replace(/"/g, "\\\"");
-            return build(function() {
-              var command;
-              command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
-              if (project["package"].npmjs) {
-                command += " && npm publish";
+  if (isNodeJs) {
+    (function() {
+      var commit, devserver, dist;
+      devserver = function(opt) {
+        return build(function() {
+          return void 0;
+        });
+      };
+      commit = function(opt) {
+        var msg;
+        msg = opt.args.join(" ").replace(/"/g, "\\\"");
+        return build(function() {
+          var command;
+          command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
+          if (project["package"].npmjs) {
+            command += " && npm publish";
+          }
+          console.log("running:\n" + command);
+          return require("child_process").exec(command, function(err, stdout, stderr) {
+            console.log(stdout);
+            console.log(stderr);
+            if (err) {
+              throw err;
+            }
+          });
+        });
+      };
+      dist = function(opt) {
+        return build();
+      };
+      if (require.main === module) {
+        return sa.nextTick(function() {
+          return loadProject(process.cwd(), function() {
+            var command, commands, fn;
+            commands = {
+              start: devserver,
+              test: function() {
+                return build();
+              },
+              commit: commit,
+              dist: build
+            };
+            commands[void 0] = commands.start;
+            command = process.argv[2];
+            fn = commands[process.argv[2]] || project.module.main;
+            return typeof fn === "function" ? fn(sa.extend({}, sa, {
+              cmd: command,
+              args: process.argv.slice(3),
+              setStyle: function() {
+                return void 0;
+              },
+              setContent: function() {
+                return void 0;
+              },
+              done: function() {
+                return void 0;
               }
-              console.log("running:\n" + command);
-              return require("child_process").exec(command, function(err, stdout, stderr) {
-                console.log(stdout);
-                console.log(stderr);
-                if (err) {
-                  throw err;
-                }
-              });
-            });
-          },
-          dist: function() {
-            return build();
-          }
-        };
-        commands[void 0] = commands.start;
-        command = process.argv[2];
-        fn = commands[process.argv[2]] || project.module.main;
-        return typeof fn === "function" ? fn(sa.extend({}, sa, {
-          cmd: command,
-          args: process.argv.slice(3),
-          setStyle: function() {
-            return void 0;
-          },
-          setContent: function() {
-            return void 0;
-          },
-          done: function() {
-            return void 0;
-          }
-        })) : void 0;
-      });
-    });
+            })) : void 0;
+          });
+        });
+      }
+    })();
   }
 
 }).call(this);
