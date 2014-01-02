@@ -2,14 +2,6 @@
   var build, coffeesource, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, loadProject, project, sa, updateGitIgnore, _ref,
     __slice = [].slice;
 
-  sa = exports;
-
-  sa.global = typeof global !== "undefined" && global !== null ? global : window;
-
-  if (typeof isNodeJs !== "boolean") {
-    sa.global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
-  }
-
   exports.about = {
     title: "SolApp",
     description: "Framework for quickly creating apps",
@@ -30,6 +22,14 @@
     }
   };
 
+  sa = exports;
+
+  sa.global = typeof global !== "undefined" && global !== null ? global : window;
+
+  if (typeof isNodeJs !== "boolean") {
+    sa.global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
+  }
+
   if (isNodeJs) {
     coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js";
     fs = require("fs");
@@ -41,22 +41,16 @@
   };
 
   sa.extend = function() {
-    var key, source, sources, target, val, _i, _len, _results;
+    var key, source, sources, target, val, _i, _len;
     target = arguments[0], sources = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-    _results = [];
     for (_i = 0, _len = sources.length; _i < _len; _i++) {
       source = sources[_i];
-      _results.push((function() {
-        var _results1;
-        _results1 = [];
-        for (key in source) {
-          val = source[key];
-          _results1.push(target[key] = val);
-        }
-        return _results1;
-      })());
+      for (key in source) {
+        val = source[key];
+        target[key] = val;
+      }
     }
-    return _results;
+    return target;
   };
 
   sa.whenDone = function(done) {
@@ -208,7 +202,7 @@
     ensureCoffeeSource = function() {
       if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
         console.log("writing " + project.name + ".coffee");
-        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n \nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\nsa = require \"solapp\" if isNodeJs\n\n#" + "{" + "{{1 Meta information\n\nexports.about =\n  fullname: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n\n#" + "{" + "{{1 Main\n\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
+        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n \nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\n\n#" + "{" + "{{1 Meta information\n\nexports.about =\n  fullname: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n  dependencies:\n    solapp: \"*\"\n\n#" + "{" + "{{1 Main\n\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
       }
     };
     ensureSolAppInstalled = function(done) {
@@ -350,7 +344,7 @@
         commands[void 0] = commands.start;
         command = process.argv[2];
         fn = commands[process.argv[2]] || project.module.main;
-        return typeof fn === "function" ? fn({
+        return typeof fn === "function" ? fn(sa.extend({}, sa, {
           cmd: command,
           args: process.argv.slice(3),
           setStyle: function() {
@@ -362,7 +356,7 @@
           done: function() {
             return void 0;
           }
-        }) : void 0;
+        })) : void 0;
       });
     });
   }

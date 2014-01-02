@@ -9,8 +9,15 @@
 #
 # - run `solapp`
 # - edit `$APPNAME.coffee`
-# - create `icon.png`, `splash.png`
-# - done
+# - create github repos, and set remote
+# - optionally
+#   - create assets such as `icon.png`, `splash.png`, etc., and git-add them
+#   - add project on travis-ci, and/or build.phonegap websites
+# - run `solapp commit ...commit-message...`
+#
+# and now the app is pushed to github, and optionally published with npm, and bower, and optionally a phonegap-build in progress
+#
+#
 #
 #{{{2 Configuration
 #
@@ -41,7 +48,7 @@
 #
 #{{{2 Intended features
 #
-# - commands: `solapp $COMMAND`
+# - commands (`solapp command`): 
 #   - `start` runs in node, and starts local development server on port 8080, watch file, and automatic reload on change.
 #   - `test` runs unit tests
 #   - `commit ...commitmsg...` run tests, increase minor version, build items in dist, git commit -a, git pull, git push, npm publish, upload to phonegap build
@@ -69,6 +76,7 @@
 #   - devserver served html5 for development (not written to disk)
 #   - minified html5 with cache-manifest,add-to-home-screen,ie-pinned-site(msapplication-meta-tags) etc. (www, Firefox Marketplace, Google Chrome Web Store, Facebook App Center)
 #   - phonegap-build & cordova (Google Play, iOS App Store, Windows Phone Store, Ubuntu Software Center, Windows Store, Mac App Store, BlackBerry World, Amazon Appstore, Steam Greenlight)
+#   - web-javascript (bower)
 #   - browser extension...
 #   - smarttv-apps...
 #
@@ -105,13 +113,7 @@
 #   - phantomjs-test
 #   - minify build
 #
-#{{{1 Literate source code
-sa = exports
-sa.global = if global? then global else window
-#{{{2 Needed boilerplate
-if typeof isNodeJs != "boolean"
-  sa.global.isNodeJs = if process?.versions?.node then true else false
-#{{{2 about
+#{{{1 Meta information
 exports.about =
   title: "SolApp"
   description: "Framework for quickly creating apps"
@@ -128,21 +130,27 @@ exports.about =
   keywords: ["framework", "html5", "phonegap"]
   bin: {solapp: "./solapp.coffee"}
 
-#{{{2 initial stuff
+#{{{1 Boilerplate
+sa = exports
+sa.global = if global? then global else window
+if typeof isNodeJs != "boolean"
+  sa.global.isNodeJs = if process?.versions?.node then true else false
+#{{{1 Initial stuff
 if isNodeJs
   coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"
   fs = require "fs"
   require "coffee-script"
 
-#{{{2 utility functions
-#{{{3 sleep
+#{{{1 Utility functions
+#{{{2 sleep
 sa.sleep = (t,fn) -> setTimeout fn, t * 1000
-#{{{3 extend
+#{{{2 extend
 sa.extend = (target, sources...) ->
   for source in sources
     for key, val of source
       target[key] = val
-#{{{3 whenDone(fn) -> ()->fn
+  target
+#{{{2 whenDone - combining several callbacks into a single one
 #
 # Utility function for combining several callbacks into a single one. `fn = sa.whenDone(done)` returns a function `fn` where each call `done1 = fn(); done2 = fn(); ...` returns new callback functions, such that when all of `done1 done2 ...` has been called once, then done will be called. 
 #
@@ -157,9 +165,12 @@ sa.whenDone = (done) ->
       results.push args
       done? results if results.length == count
 
-#{{{3 nextTick
+#{{{2 nextTick
 sa.nextTick = if isNodeJs then process.nextTick else (fn) -> setTimeout fn, 0
-#{{{3 readFileSync 
+#{{{2 readFileSync 
+#
+# TODO: probably remove
+#
 # abstracted to return empty string on non-existant file, and add the ability to implement on other platforms than node
 if isNodeJs
   sa.readFileSync =
@@ -170,9 +181,9 @@ if isNodeJs
         console.log "Warning, couldn't read \"#{filename}\":\n#{e}"
         return ""
 
-#{{{2 SolApp app build/creation
+#{{{1 SolApp app build/creation
 if isNodeJs
-  #{{{3 autoexpand package.json
+  #{{{2 expandPackage - create package.json content, and increment minor version
   expandPackage = () ->
     version = (project.package.version || "0.0.1").split "."
     version[2] = +version[2] + 1
@@ -194,7 +205,7 @@ if isNodeJs
       type: "git"
       url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
   
-  #{{{3 create README.md
+  #{{{2 genReadme - create README.md
   genReadme = (project) ->
     source = project.source
     pkg = project.package
@@ -228,7 +239,7 @@ if isNodeJs
   
     return result
 
-  #{{{3 update .gitignore
+  #{{{2 updateGitIgnore - update .gitignore
   updateGitIgnore = (done) ->
     fs.readFile "#{project.dirname}/.gitignore", "utf8", (err, data) ->
       data = "" if err
@@ -240,7 +251,7 @@ if isNodeJs
       result["*.swp"] = true
       fs.writeFile "#{project.dirname}/.gitignore", (Object.keys result).join("\n")+"\n", done
   
-  #{{{3 ensureCoffeeSource
+  #{{{2 ensureCoffeeSource
   ensureCoffeeSource = ->
     if !fs.existsSync "#{project.dirname}/#{project.name}.coffee"
       console.log "writing #{project.name}.coffee"
@@ -252,7 +263,6 @@ if isNodeJs
    
   if typeof isNodeJs != "boolean"
     (global? || window?).isNodeJs = if process?.versions?.node then true else false
-  sa = require "solapp" if isNodeJs
   
   ##{"{"}{{1 Meta information
   
@@ -270,6 +280,8 @@ if isNodeJs
       ]
       files: [
       ]
+    dependencies:
+      solapp: "*"
   
   ##{"{"}{{1 Main
   
@@ -279,7 +291,9 @@ if isNodeJs
     opt.done()
   
   """
-  #{{{3 ensureSolAppInstalled
+  #{{{2 ensureSolAppInstalled
+  #
+  # TODO: probably remove this one, when solapp-object is passed to main
   ensureSolAppInstalled = (done) ->
     return done() if fs.existsSync "#{process.cwd()}/node_modules/solapp"
     console.log "writing node_modules/solapp"
@@ -287,7 +301,7 @@ if isNodeJs
       throw err if err
       done()
   
-  #{{{3 ensureGit
+  #{{{2 ensureGit
   ensureGit = (done) ->
     return done?() if fs.existsSync "#{project.dirname}/.git"
     console.log "creating git repository..."
@@ -297,8 +311,9 @@ if isNodeJs
       console.log stderr
       done?()
   
-  
-  #{{{3 loadProject
+  #{{{2 loadProject - create module-global project-var
+  #
+  # TODO, maybe make this passed around as parameter
   project = undefined
   loadProject = (dirname, done) ->
     ensureSolAppInstalled ->
@@ -314,7 +329,7 @@ if isNodeJs
       expandPackage()
       done project
   
-  #{{{3 Actual build function
+  #{{{2 build - Actual build function
   build = (done) ->
     next = sa.whenDone ->
       ensureGit done
@@ -353,7 +368,7 @@ if isNodeJs
     console.log "writing #{project.name}.js"
     fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), next()
 
-  #{{{3 devserver jsonml
+  #{{{2 devserverJsonml - create the html jsonml-object for the dev-server
   devserverJsonml = () ->
     ["html", {manifest: "manifest.appcache"},
       ["head"
@@ -369,7 +384,7 @@ if isNodeJs
       ]
     ]
   
-#{{{2 Main dispatch
+#{{{1 Main dispatch
 if isNodeJs and require.main == module then sa.nextTick ->
   loadProject process.cwd(), ->
     commands =
@@ -393,10 +408,10 @@ if isNodeJs and require.main == module then sa.nextTick ->
     commands[undefined] = commands.start
     command = process.argv[2]
     fn = commands[process.argv[2]] || project.module.main
-    fn? {
+    fn?(sa.extend {}, sa, {
       cmd: command
       args: process.argv.slice(3)
       setStyle: -> undefined
       setContent: -> undefined
       done: -> undefined
-    }
+    })
