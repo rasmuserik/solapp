@@ -13,12 +13,35 @@
 # - create icon and screenshot in `meta`-folder
 # - done
 #
+#{{{2 Configuration
+#
+# Assign an object to `exports.about` with the following content
+#
+# - `title` publicly displayed name of app (max 30 char)
+# - `description` publicly displayed description of application, - should be max 4000 characters
+# - `keywords` list of keywords
+# - `author` creator of the app - defaults to me (Rasmus Erik)
+# - `name` name of app for files, in registry, github repos, etc. Must be the source filename, npm-package-name, repository-name, ...
+# - `owner` github user/organisation that owns the app, ie. repository is `github.com/owner/name`
+# - `dependencies` npm dependencies
+# - `html5` build html5-app if present
+#   - `userScaleable` user is able to zoom in/out on touch devices if truthy
+#   - `addToHomeScreen` add http://cubiq.org/add-to-home-screen if truthy
+#   - `files` list of files in repository to include in the app
+#   - `css` list of urls to stylesheets to include in the app
+#   - `js` list of utls to javascripts to include in the app
+# - `npm` build and publish npm package
+# - `phonegap` build phonegap app if present, use configuration from html5-section in addition to this section, see also http://docs.build.phonegap.com
+#   - `fullscreen`
+#   - `orientation` default, portrait or landscape
+#   - `plugins` object with which phonegap plugins to use
+#
 #{{{2 Intended features
 #
 # - commands: `solapp $COMMAND`
 #   - `start` runs in node, and starts local development server on port 8080, watch file, and automatic reload on change.
 #   - `test` runs unit tests
-#   - `commit ...commitmsg...` run tests, increase minor version, build items in dist, git commit -a, git pull, git push, npm publish
+#   - `commit ...commitmsg...` run tests, increase minor version, build items in dist, git commit -a, git pull, git push, npm publish, upload to phonegap build
 #   - `dist` build items in dist
 # - input
 #   - $APPNAME.coffee - $APPNAME should be the `name` in package.json
@@ -70,6 +93,7 @@
 #   - refactor/cleanup
 # - 0.2 module-dependencies and testing
 #   - use exports.about for package-info, overriding/overwriting package.json
+#   - automatic creation/submission of phonegap apps using phonegap app api
 #   - minified js-library for web
 #   - optional appcache/index.html/$APPNAME.js/...
 #   - addToHomeScreen
