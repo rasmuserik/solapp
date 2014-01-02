@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, loadProject, project, sa, updateGitIgnore, _ref,
+  var build, coffeesource, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, loadProject, project, sa, throttleAsyncFn, updateGitIgnore, _ref,
     __slice = [].slice;
 
   exports.about = {
@@ -24,10 +24,13 @@
 
   sa = exports;
 
-  sa.global = typeof global !== "undefined" && global !== null ? global : window;
+  if (typeof window !== "undefined" && window !== null) {
+    window.global = window;
+  }
 
   if (typeof isNodeJs !== "boolean") {
-    sa.global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
+    global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
+    global.isTesting = isNodeJs && process.argv[2] === "test";
   }
 
   if (isNodeJs) {
@@ -75,6 +78,43 @@
 
   sa.nextTick = isNodeJs ? process.nextTick : function(fn) {
     return setTimeout(fn, 0);
+  };
+
+  throttleAsyncFn = function(fn, delay) {
+    var lastTime, rerun, run, running, schedule, scheduled;
+    delay || (delay = 1000);
+    running = [];
+    rerun = [];
+    scheduled = false;
+    lastTime = 0;
+    run = function() {
+      var t;
+      scheduled = false;
+      t = running;
+      running = rerun;
+      rerun = running;
+      lastTime = Date.now();
+      return fn(function() {
+        var args, cb, _i, _len;
+        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+        for (_i = 0, _len = running.length; _i < _len; _i++) {
+          cb = running[_i];
+          cb.apply(null, args);
+        }
+        running.empty();
+        return schedule();
+      });
+    };
+    schedule = function() {
+      if (rerun.length > 0 && running.length === 0 && !scheduled) {
+        scheduled = true;
+        return setTimeout(run, Math.max(0, lastTime - Date.now() - delay));
+      }
+    };
+    return function(cb) {
+      rerun.push(cb);
+      return schedule();
+    };
   };
 
   if (isNodeJs) {

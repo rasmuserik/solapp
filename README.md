@@ -139,9 +139,10 @@ any additional properties will also be passed on into `package.json`
 # Boilerplate
 
     sa = exports
-    sa.global = if global? then global else window
+    window?.global = window
     if typeof isNodeJs != "boolean"
-      sa.global.isNodeJs = if process?.versions?.node then true else false
+      global.isNodeJs = if process?.versions?.node then true else false
+      global.isTesting = isNodeJs && process.argv[2] == "test"
 
 # Initial stuff
 
@@ -184,6 +185,34 @@ Utility function for combining several callbacks into a single one. `fn = sa.whe
 ## nextTick
 
     sa.nextTick = if isNodeJs then process.nextTick else (fn) -> setTimeout fn, 0
+
+## throttleAsyncFn - throttle asynchronous function
+
+    throttleAsyncFn = (fn, delay) ->
+      delay ||= 1000
+      running = []
+      rerun = []
+      scheduled = false
+      lastTime = 0
+      run = ->
+        scheduled = false
+        t = running; running = rerun; rerun = running
+        lastTime = Date.now()
+        fn (args...) ->
+          for cb in running
+            cb args...
+          running.empty()
+          schedule()
+          
+      schedule = ->
+        if rerun.length > 0 && running.length == 0 && !scheduled
+          scheduled = true
+          setTimeout run, Math.max(0, lastTime - Date.now() - delay)
+    
+      (cb) ->
+        rerun.push cb
+        schedule()
+    
 
 ## readFileSync
 
