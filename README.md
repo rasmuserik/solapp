@@ -274,6 +274,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
 
       ensureCoffeeSource = ->
         if !fs.existsSync "#{project.dirname}/#{project.name}.coffee"
+          console.log "writing #{project.name}.coffee"
           fs.writeFileSync "#{project.dirname}/#{project.name}.coffee", """
 
 !/bin/env coffee
@@ -281,13 +282,15 @@ abstracted to return empty string on non-existant file, and add the ability to i
 
 Define `isNodeJs` in a way such that it can be optimised away by uglify-js
 
-
+       
       if typeof isNodeJs != "boolean"
         (global? || window?).isNodeJs = if process?.versions?.node then true else false
       sa = require "solapp" if isNodeJs
+      
 
 #{"{"}{{1 Meta information
 
+      
       exports.about =
         fullname: "#{project.name}"
         description: "..."
@@ -303,21 +306,24 @@ Define `isNodeJs` in a way such that it can be optimised away by uglify-js
           files: [
           ]
       
+
+#{"{"}{{1 Main
+
+      
+      exports.main = (opt) ->
+        opt.setStyle {h1: {backgroundColor: "green"}}
+        opt.setContent ["div", ["h1", "hello world"]]
+        opt.done()
+      
       """
 
 ### ensureSolAppInstalled
 
       ensureSolAppInstalled = (done) ->
-        return done() if fs.existsSync "#{__dirname}/node_modules/solapp"
-        console.log "installing solapp..."
-        command = if fs.existsSync "#{__dirname}/../solapp"
-            "mkdir node_modules; ln -s `pwd`/../solapp node_modules/solapp"
-          else
-            "npm install solapp"
-        require("child_process").exec command, (err, stdout, stderr) ->
+        return done() if fs.existsSync "#{process.cwd()}/node_modules/solapp"
+        console.log "writing node_modules/solapp"
+        require("child_process").exec "mkdir node_modules; ln -s #{__dirname} node_modules/solapp", (err, stdout, stderr) ->
           throw err if err
-          console.log stdout
-          console.log stderr
           done()
       
 
@@ -364,7 +370,7 @@ Define `isNodeJs` in a way such that it can be optimised away by uglify-js
         project.package.version = version.join "."
         fs.writeFile "#{project.dirname}/package.json", "#{JSON.stringify project.package, null, 4}\n", next()
     
-        console.log "updating .gitignore"
+        console.log "writing .gitignore"
         updateGitIgnore next()
     
         console.log "writing .travis.yml"
@@ -445,6 +451,9 @@ Define `isNodeJs` in a way such that it can be optimised away by uglify-js
         fn? {
           cmd: command
           args: process.argv.slice(3)
+          setStyle: -> undefined
+          setContent: -> undefined
+          done: -> undefined
         }
     
 

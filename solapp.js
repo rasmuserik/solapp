@@ -207,22 +207,19 @@
     };
     ensureCoffeeSource = function() {
       if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
-        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n#\nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\nsa = require \"solapp\" if isNodeJs\n#" + "{" + "{{1 Meta information\nexports.about =\n  fullname: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n");
+        console.log("writing " + project.name + ".coffee");
+        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n \nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\nsa = require \"solapp\" if isNodeJs\n\n#" + "{" + "{{1 Meta information\n\nexports.about =\n  fullname: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n\n#" + "{" + "{{1 Main\n\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
       }
     };
     ensureSolAppInstalled = function(done) {
-      var command;
-      if (fs.existsSync("" + __dirname + "/node_modules/solapp")) {
+      if (fs.existsSync("" + (process.cwd()) + "/node_modules/solapp")) {
         return done();
       }
-      console.log("installing solapp...");
-      command = fs.existsSync("" + __dirname + "/../solapp") ? "mkdir node_modules; ln -s `pwd`/../solapp node_modules/solapp" : "npm install solapp";
-      return require("child_process").exec(command, function(err, stdout, stderr) {
+      console.log("writing node_modules/solapp");
+      return require("child_process").exec("mkdir node_modules; ln -s " + __dirname + " node_modules/solapp", function(err, stdout, stderr) {
         if (err) {
           throw err;
         }
-        console.log(stdout);
-        console.log(stderr);
         return done();
       });
     };
@@ -268,7 +265,7 @@
       version[2] = +version[2] + 1;
       project["package"].version = version.join(".");
       fs.writeFile("" + project.dirname + "/package.json", "" + (JSON.stringify(project["package"], null, 4)) + "\n", next());
-      console.log("updating .gitignore");
+      console.log("writing .gitignore");
       updateGitIgnore(next());
       console.log("writing .travis.yml");
       travis = "language: node_js\nnode_js:\n  - 0.10 \n";
@@ -355,7 +352,16 @@
         fn = commands[process.argv[2]] || project.module.main;
         return typeof fn === "function" ? fn({
           cmd: command,
-          args: process.argv.slice(3)
+          args: process.argv.slice(3),
+          setStyle: function() {
+            return void 0;
+          },
+          setContent: function() {
+            return void 0;
+          },
+          done: function() {
+            return void 0;
+          }
         }) : void 0;
       });
     });
