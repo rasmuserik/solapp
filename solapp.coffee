@@ -383,7 +383,7 @@ if isNodeJs and require.main == module then sa.nextTick ->
         msg = opt.args.join(" ").replace(/"/g, "\\\"")
         build ->
           command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
-          if project.package.npm
+          if project.package.npmjs
             command += " && npm publish"
           console.log "running:\n#{command}"
           require("child_process").exec command, (err, stdout, stderr) ->

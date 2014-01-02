@@ -352,7 +352,7 @@
             return build(function() {
               var command;
               command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
-              if (project["package"].npm) {
+              if (project["package"].npmjs) {
                 command += " && npm publish";
               }
               console.log("running:\n" + command);
