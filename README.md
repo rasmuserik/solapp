@@ -90,6 +90,8 @@ any additional properties will also be passed on into `package.json`
 
 - version 0.1
 - development
+  - `build` command
+  - `test` command
   - define global in devserver/web-client
   - basic require("solapp")-handling on client
   - define isNodeJs etc with `require("solapp").globalDefines global`
@@ -109,9 +111,7 @@ any additional properties will also be passed on into `package.json`
 
 ## Roadmap
 
-- 0.1 first working prototype: npm-modules, html5, phonegap-build
-  - `build` command
-  - `test` command
+- 0.1 first working prototype
   - refactor/cleanup
   - minified js-library for web
 - 0.2 real-world use within 360º, uccorg-backend and maybe more
@@ -119,7 +119,7 @@ any additional properties will also be passed on into `package.json`
   - stuff needed for uccorg backend
   - autoreload devserver content on file change, restart/execute server
   - api-creation-library
-  - faye-support
+  - faye-support - replace socket.io
   - only increment version on publish
     - have date/time instead of version in manifest
   - basic publish command with git-tag
@@ -137,6 +137,7 @@ any additional properties will also be passed on into `package.json`
   - phantomjs-test
   - minify build
   - infer dependencies from `require`-analysis of compiled coffeescript
+  - automatic screenshot via phantomjs
 
 # Meta information
 
@@ -156,17 +157,23 @@ any additional properties will also be passed on into `package.json`
       keywords: ["framework", "html5", "phonegap"]
       bin: {solapp: "./solapp.coffee"}
     
+    
 
-# Boilerplate
+# General tools
 
     solapp = exports
+    solapp.getArgs = -> if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
+    
+
+# Environment
+
+    runTests = undefined
     exports.globalDefines = (global) ->
       if typeof isNodeJs != "boolean"
         global.isNodeJs = if process?.versions?.node then true else false
         global.isDevServer = typeof isDevServer != "undefined" && isDevServer
-        global.isTesting = isNodeJs && process.argv[2] == "test"
+        global.isTesting = solapp.getArgs()[0] == "test"
     exports.globalDefines global
-    
     
 
 # Initial stuff
@@ -600,9 +607,13 @@ TODO, maybe make this passed around as parameter
         loadProject process.cwd(), ->
           commands =
             start: devserver
-            test: -> build() #TODO
+            test: ->
+              build ->
+                project.module.test?({
+                  done: -> undefined
+                })
             commit: commit
-            dist: build
+            build: build
           command = process.argv[2]
           fn = commands[process.argv[2]] || project.module.main
           fn?(solapp.extend {}, solapp, {

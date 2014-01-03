@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, solapp, updateGitIgnore,
+  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, runTests, solapp, updateGitIgnore,
     __slice = [].slice;
 
   exports.about = {
@@ -24,12 +24,22 @@
 
   solapp = exports;
 
+  solapp.getArgs = function() {
+    if (isNodeJs) {
+      return process.argv.slice(2);
+    } else {
+      return location.hash.slice(1).split("/");
+    }
+  };
+
+  runTests = void 0;
+
   exports.globalDefines = function(global) {
     var _ref;
     if (typeof isNodeJs !== "boolean") {
       global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
       global.isDevServer = typeof isDevServer !== "undefined" && isDevServer;
-      return global.isTesting = isNodeJs && process.argv[2] === "test";
+      return global.isTesting = solapp.getArgs()[0] === "test";
     }
   };
 
@@ -558,10 +568,17 @@
             commands = {
               start: devserver,
               test: function() {
-                return build();
+                return build(function() {
+                  var _base;
+                  return typeof (_base = project.module).test === "function" ? _base.test({
+                    done: function() {
+                      return void 0;
+                    }
+                  }) : void 0;
+                });
               },
               commit: commit,
-              dist: build
+              build: build
             };
             command = process.argv[2];
             fn = commands[process.argv[2]] || project.module.main;
