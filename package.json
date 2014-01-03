@@ -1,6 +1,6 @@
 {
     "name": "solapp",
-    "version": "0.0.69",
+    "version": "0.0.149",
     "title": "SolApp",
     "description": "Framework for quickly creating apps",
     "dependencies": {

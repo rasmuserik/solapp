@@ -188,7 +188,7 @@ Utility function for combining several callbacks into a single one. `fn = sa.whe
 
 ## throttleAsyncFn - throttle asynchronous function
 
-    throttleAsyncFn = (fn, delay) ->
+    sa.throttleAsyncFn = (fn, delay) ->
       delay ||= 1000
       running = []
       rerun = []
@@ -212,6 +212,54 @@ Utility function for combining several callbacks into a single one. `fn = sa.whe
       (cb) ->
         rerun.push cb
         schedule()
+    
+
+## xmlEscape
+
+    sa.xmlEscape = (str) -> String(str).replace RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), (c) -> "&##{c.charCodeAt 0};"
+
+## obj2css
+
+    sa.obj2css = (obj) ->
+      (for key, val of obj
+        key = key.replace /[A-Z]/g, (c) -> "-" + c.toLowerCase()
+        val = "#{val}px" if typeof val == "number"
+        "#{key}:#{val}"
+      ).join ";"
+
+## jsonml2html
+
+    sa.jsonml2html = (arr) ->
+      return "#{sa.xmlEscape arr}" if !Array.isArray(arr)
+
+raw html, useful for stuff which shouldn't be xmlescaped etc.
+
+      return arr[1] if arr[0] == "rawhtml"
+
+normalise jsonml, make sure it contains attributes
+
+      arr = [arr[0], {}].concat arr.slice(1) if arr[1]?.constructor != Object
+      attr = sa.extend arr[1]
+
+convert style objects to strings
+
+      attr.style = sa.obj2css attr.style if attr.style?.constructor == Object
+
+shorthand for classes and ids
+
+      tag = arr[0].replace /#([^.#]*)/, (_, id) -> attr.id = id; ""
+      tag = tag.replace /\.([^.#]*)/g, (_, cls) ->
+        attr["class"] = if attr["class"] == undefined then cls else "#{attr["class"]} #{cls}"
+        ""
+
+create actual tag string
+
+      result = "<#{tag}#{(" #{key}=\"#{sa.xmlEscape val}\"" for key, val of attr).join ""}>"
+
+add children and endtag, if there are children. `<foo></foo>` is done with `["foo", ""]`
+
+      result += "#{arr.slice(2).map(sa.jsonml2html).join ""}</#{tag}>" if arr.length > 2
+      return result
     
 
 ## readFileSync
@@ -447,21 +495,18 @@ TODO, maybe make this passed around as parameter
 
 ## devserverJsonml - create the html jsonml-object for the dev-server
 
-      devserverJsonml = () ->
+      devserverJsonml = (project) ->
         ["html", {manifest: "manifest.appcache"},
           ["head"
             ["title", project.package.title]
             ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
             ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
             ["meta", {name: "HandheldFriendly", content: "true"}]
-            ["meta", {name: "viewport", content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,
-
-{if project.package.userScalable then "" else ", user-scalable=0"}"}]
-
+            ["meta", {name: "viewport", content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0#{
+              if project.package.userScalable then "" else ", user-scalable=0"}"}]
             ["meta", {name: "format-detection", content: "telephone=no"}]
           ]
-          ["body"
-          ]
+          ["body", ""]
         ]
       
 

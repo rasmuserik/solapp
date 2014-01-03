@@ -169,7 +169,7 @@ sa.whenDone = (done) ->
 #{{{2 nextTick
 sa.nextTick = if isNodeJs then process.nextTick else (fn) -> setTimeout fn, 0
 #{{{2 throttleAsyncFn - throttle asynchronous function
-throttleAsyncFn = (fn, delay) ->
+sa.throttleAsyncFn = (fn, delay) ->
   delay ||= 1000
   running = []
   rerun = []
@@ -193,6 +193,36 @@ throttleAsyncFn = (fn, delay) ->
   (cb) ->
     rerun.push cb
     schedule()
+
+#{{{2 xmlEscape
+sa.xmlEscape = (str) -> String(str).replace RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), (c) -> "&##{c.charCodeAt 0};"
+#{{{2 obj2css
+sa.obj2css = (obj) ->
+  (for key, val of obj
+    key = key.replace /[A-Z]/g, (c) -> "-" + c.toLowerCase()
+    val = "#{val}px" if typeof val == "number"
+    "#{key}:#{val}"
+  ).join ";"
+#{{{2 jsonml2html
+sa.jsonml2html = (arr) ->
+  return "#{sa.xmlEscape arr}" if !Array.isArray(arr)
+  # raw html, useful for stuff which shouldn't be xmlescaped etc.
+  return arr[1] if arr[0] == "rawhtml"
+  # normalise jsonml, make sure it contains attributes
+  arr = [arr[0], {}].concat arr.slice(1) if arr[1]?.constructor != Object
+  attr = sa.extend arr[1]
+  # convert style objects to strings
+  attr.style = sa.obj2css attr.style if attr.style?.constructor == Object
+  # shorthand for classes and ids
+  tag = arr[0].replace /#([^.#]*)/, (_, id) -> attr.id = id; ""
+  tag = tag.replace /\.([^.#]*)/g, (_, cls) ->
+    attr["class"] = if attr["class"] == undefined then cls else "#{attr["class"]} #{cls}"
+    ""
+  # create actual tag string
+  result = "<#{tag}#{(" #{key}=\"#{sa.xmlEscape val}\"" for key, val of attr).join ""}>"
+  # add children and endtag, if there are children. `<foo></foo>` is done with `["foo", ""]`
+  result += "#{arr.slice(2).map(sa.jsonml2html).join ""}</#{tag}>" if arr.length > 2
+  return result
 
 #{{{2 readFileSync 
 #
@@ -396,19 +426,18 @@ if isNodeJs
     fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), next()
 
   #{{{2 devserverJsonml - create the html jsonml-object for the dev-server
-  devserverJsonml = () ->
+  devserverJsonml = (project) ->
     ["html", {manifest: "manifest.appcache"},
       ["head"
         ["title", project.package.title]
         ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
         ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
         ["meta", {name: "HandheldFriendly", content: "true"}]
-        ["meta", {name: "viewport", content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,
-          #{if project.package.userScalable then "" else ", user-scalable=0"}"}]
+        ["meta", {name: "viewport", content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0#{
+          if project.package.userScalable then "" else ", user-scalable=0"}"}]
         ["meta", {name: "format-detection", content: "telephone=no"}]
       ]
-      ["body"
-      ]
+      ["body", ""]
     ]
   
 #{{{1 Main dispatch

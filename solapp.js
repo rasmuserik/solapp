@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, loadProject, project, sa, throttleAsyncFn, updateGitIgnore, _ref,
+  var build, coffeesource, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, loadProject, project, sa, updateGitIgnore, _ref,
     __slice = [].slice;
 
   exports.about = {
@@ -80,7 +80,7 @@
     return setTimeout(fn, 0);
   };
 
-  throttleAsyncFn = function(fn, delay) {
+  sa.throttleAsyncFn = function(fn, delay) {
     var lastTime, rerun, run, running, schedule, scheduled;
     delay || (delay = 1000);
     running = [];
@@ -115,6 +115,69 @@
       rerun.push(cb);
       return schedule();
     };
+  };
+
+  sa.xmlEscape = function(str) {
+    return String(str).replace(RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), function(c) {
+      return "&#" + (c.charCodeAt(0)) + ";";
+    });
+  };
+
+  sa.obj2css = function(obj) {
+    var key, val;
+    return ((function() {
+      var _results;
+      _results = [];
+      for (key in obj) {
+        val = obj[key];
+        key = key.replace(/[A-Z]/g, function(c) {
+          return "-" + c.toLowerCase();
+        });
+        if (typeof val === "number") {
+          val = "" + val + "px";
+        }
+        _results.push("" + key + ":" + val);
+      }
+      return _results;
+    })()).join(";");
+  };
+
+  sa.jsonml2html = function(arr) {
+    var attr, key, result, tag, val, _ref1, _ref2;
+    if (!Array.isArray(arr)) {
+      return "" + (sa.xmlEscape(arr));
+    }
+    if (arr[0] === "rawhtml") {
+      return arr[1];
+    }
+    if (((_ref1 = arr[1]) != null ? _ref1.constructor : void 0) !== Object) {
+      arr = [arr[0], {}].concat(arr.slice(1));
+    }
+    attr = sa.extend(arr[1]);
+    if (((_ref2 = attr.style) != null ? _ref2.constructor : void 0) === Object) {
+      attr.style = sa.obj2css(attr.style);
+    }
+    tag = arr[0].replace(/#([^.#]*)/, function(_, id) {
+      attr.id = id;
+      return "";
+    });
+    tag = tag.replace(/\.([^.#]*)/g, function(_, cls) {
+      attr["class"] = attr["class"] === void 0 ? cls : "" + attr["class"] + " " + cls;
+      return "";
+    });
+    result = "<" + tag + (((function() {
+      var _results;
+      _results = [];
+      for (key in attr) {
+        val = attr[key];
+        _results.push(" " + key + "=\"" + (sa.xmlEscape(val)) + "\"");
+      }
+      return _results;
+    })()).join("")) + ">";
+    if (arr.length > 2) {
+      result += "" + (arr.slice(2).map(sa.jsonml2html).join("")) + "</" + tag + ">";
+    }
+    return result;
   };
 
   if (isNodeJs) {
@@ -311,7 +374,7 @@
       console.log("writing " + project.name + ".js");
       return fs.writeFile("" + project.name + ".js", require("coffee-script").compile(project.source), next());
     };
-    devserverJsonml = function() {
+    devserverJsonml = function(project) {
       return [
         "html", {
           manifest: "manifest.appcache"
@@ -334,7 +397,7 @@
           ], [
             "meta", {
               name: "viewport",
-              content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0,          " + (project["package"].userScalable ? "" : ", user-scalable=0")
+              content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" + (project["package"].userScalable ? "" : ", user-scalable=0")
             }
           ], [
             "meta", {
@@ -342,7 +405,7 @@
               content: "telephone=no"
             }
           ]
-        ], ["body"]
+        ], ["body", ""]
       ];
     };
   }
