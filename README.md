@@ -573,7 +573,16 @@ TODO, maybe make this passed around as parameter
               ("#{key}{#{solapp.obj2style val}}" for key, val of style).join ""
           setContent: (html) -> document.getElementById("solappContent").innerHTML = solapp.jsonml2html html
           done: -> undefined
-        exports.main solapp.extend {}, solapp, opt
+    
+
+Dispatch by first arg, - TODO merge with SolApp dispatch
+
+        if solapp.getArgs()[0] == "test"
+          exports.test? {done: -> undefined}
+        else if solapp.getArgs()[0] in ["start", "commit", "build"]
+          undefined
+        else
+          exports.main solapp.extend {}, solapp, opt
     
 
 # SolApp dispatch
@@ -609,9 +618,7 @@ TODO, maybe make this passed around as parameter
             start: devserver
             test: ->
               build ->
-                project.module.test?({
-                  done: -> undefined
-                })
+                project.module.test? {done: -> undefined}
             commit: commit
             build: build
           command = process.argv[2]

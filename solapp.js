@@ -510,7 +510,7 @@
       }
     };
     solapp.devserverMain = function(pkg) {
-      var opt;
+      var opt, _ref;
       opt = {
         args: [],
         setStyle: function(style) {
@@ -532,7 +532,17 @@
           return void 0;
         }
       };
-      return exports.main(solapp.extend({}, solapp, opt));
+      if (solapp.getArgs()[0] === "test") {
+        return typeof exports.test === "function" ? exports.test({
+          done: function() {
+            return void 0;
+          }
+        }) : void 0;
+      } else if ((_ref = solapp.getArgs()[0]) === "start" || _ref === "commit" || _ref === "build") {
+        return void 0;
+      } else {
+        return exports.main(solapp.extend({}, solapp, opt));
+      }
     };
   }
 
