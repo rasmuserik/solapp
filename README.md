@@ -90,6 +90,9 @@ any additional properties will also be passed on into `package.json`
 
 - version 0.1
 - development
+  - define global in devserver/web-client
+  - basic require("solapp")-handling on client
+  - define isNodeJs etc with `require("solapp").be global`
   - basic devserver
   - autocreate project in current directory
   - use `exports.about` for package-info, overriding/overwriting package.json
@@ -110,9 +113,6 @@ any additional properties will also be passed on into `package.json`
   - `build` command
   - `test` command
   - refactor/cleanup
-  - basic require-handling on client
-  - define global in devserver/web-client
-  - define isNodeJs etc with `require("solapp").be(global)`
   - minified js-library for web
 - 0.2 real-world use within 360º, uccorg-backend and maybe more
   - stuff needed for 360º 
@@ -159,16 +159,15 @@ any additional properties will also be passed on into `package.json`
 
 # Boilerplate
 
+    solapp = exports
     exports.be = (global) ->
+      global.solapp = solapp
       if typeof isNodeJs != "boolean"
         global.isNodeJs = if process?.versions?.node then true else false
         global.isDevServer = typeof isDevServer != "undefined" && isDevServer
         global.isTesting = isNodeJs && process.argv[2] == "test"
-      global.solapp = exports
-    
-    window?.global = window
-    sa = exports
     exports.be global
+    
     
 
 # Initial stuff
@@ -182,11 +181,11 @@ any additional properties will also be passed on into `package.json`
 # Utility functions
 ## sleep
 
-    sa.sleep = (t,fn) -> setTimeout fn, t * 1000
+    solapp.sleep = (t,fn) -> setTimeout fn, t * 1000
 
 ## extend
 
-    sa.extend = (target, sources...) ->
+    solapp.extend = (target, sources...) ->
       for source in sources
         for key, val of source
           target[key] = val
@@ -194,10 +193,10 @@ any additional properties will also be passed on into `package.json`
 
 ## whenDone - combining several callbacks into a single one
 
-Utility function for combining several callbacks into a single one. `fn = sa.whenDone(done)` returns a function `fn` where each call `done1 = fn(); done2 = fn(); ...` returns new callback functions, such that when all of `done1 done2 ...` has been called once, then done will be called. 
+Utility function for combining several callbacks into a single one. `fn = solapp.whenDone(done)` returns a function `fn` where each call `done1 = fn(); done2 = fn(); ...` returns new callback functions, such that when all of `done1 done2 ...` has been called once, then done will be called. 
 
 
-    sa.whenDone = (done) ->
+    solapp.whenDone = (done) ->
       count = 0
       results = []
       ->
@@ -211,11 +210,11 @@ Utility function for combining several callbacks into a single one. `fn = sa.whe
 
 ## nextTick
 
-    sa.nextTick = if isNodeJs then process.nextTick else (fn) -> setTimeout fn, 0
+    solapp.nextTick = if isNodeJs then process.nextTick else (fn) -> setTimeout fn, 0
 
 ## throttleAsyncFn - throttle asynchronous function
 
-    sa.throttleAsyncFn = (fn, delay) ->
+    solapp.throttleAsyncFn = (fn, delay) ->
       delay ||= 1000
       running = []
       rerun = []
@@ -243,11 +242,11 @@ Utility function for combining several callbacks into a single one. `fn = sa.whe
 
 ## xmlEscape
 
-    sa.xmlEscape = (str) -> String(str).replace RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), (c) -> "&##{c.charCodeAt 0};"
+    solapp.xmlEscape = (str) -> String(str).replace RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), (c) -> "&##{c.charCodeAt 0};"
 
 ## obj2style
 
-    sa.obj2style = (obj) ->
+    solapp.obj2style = (obj) ->
       (for key, val of obj
         key = key.replace /[A-Z]/g, (c) -> "-" + c.toLowerCase()
         val = "#{val}px" if typeof val == "number"
@@ -256,8 +255,8 @@ Utility function for combining several callbacks into a single one. `fn = sa.whe
 
 ## jsonml2html
 
-    sa.jsonml2html = (arr) ->
-      return "#{sa.xmlEscape arr}" if !Array.isArray(arr)
+    solapp.jsonml2html = (arr) ->
+      return "#{solapp.xmlEscape arr}" if !Array.isArray(arr)
 
 raw html, useful for stuff which shouldn't be xmlescaped etc.
 
@@ -266,11 +265,11 @@ raw html, useful for stuff which shouldn't be xmlescaped etc.
 normalise jsonml, make sure it contains attributes
 
       arr = [arr[0], {}].concat arr.slice(1) if arr[1]?.constructor != Object
-      attr = sa.extend arr[1]
+      attr = solapp.extend arr[1]
 
 convert style objects to strings
 
-      attr.style = sa.obj2style attr.style if attr.style?.constructor == Object
+      attr.style = solapp.obj2style attr.style if attr.style?.constructor == Object
 
 shorthand for classes and ids
 
@@ -281,11 +280,11 @@ shorthand for classes and ids
 
 create actual tag string
 
-      result = "<#{tag}#{(" #{key}=\"#{sa.xmlEscape val}\"" for key, val of attr).join ""}>"
+      result = "<#{tag}#{(" #{key}=\"#{solapp.xmlEscape val}\"" for key, val of attr).join ""}>"
 
 add children and endtag, if there are children. `<foo></foo>` is done with `["foo", ""]`
 
-      result += "#{arr.slice(2).map(sa.jsonml2html).join ""}</#{tag}>" if arr.length > 2
+      result += "#{arr.slice(2).map(solapp.jsonml2html).join ""}</#{tag}>" if arr.length > 2
       return result
     
 
@@ -296,7 +295,7 @@ TODO: probably remove
 abstracted to return empty string on non-existant file, and add the ability to implement on other platforms than node
 
     if isNodeJs
-      sa.readFileSync =
+      solapp.readFileSync =
         (filename) ->
           try
             return fs.readFileSync filename, "utf8"
@@ -317,7 +316,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
         pkg = project.package =
           name: project.name
           version: version.join "."
-        sa.extend pkg, project.module.about || {}
+        solapp.extend pkg, project.module.about || {}
         pkg.title ?= pkg.name
         pkg.author ?= "Rasmus Erik Voel Jensen (solsort.com)"
         pkg.owner ?= "rasmuserik"
@@ -391,45 +390,38 @@ abstracted to return empty string on non-existant file, and add the ability to i
           fs.writeFileSync "#{project.dirname}/#{project.name}.coffee", """
 
 !/bin/env coffee
-#{"{"}{{1 Boilerplate
 
-Define `isNodeJs` in a way such that it can be optimised away by uglify-js
-
-       
-      if typeof isNodeJs != "boolean"
-        (global? || window?).isNodeJs = if process?.versions?.node then true else false
-      
+            require("solapp").be global 
+            
 
 #{"{"}{{1 Meta information
 
-      
-      exports.about =
-        title: "#{project.name}"
-        description: "..."
-        html5:
-          css: [
-            "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"
-            "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
-          ]
-          js: [
-            "//code.jquery.com/jquery-1.10.2.min.js"
-            "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
-          ]
-          files: [
-          ]
-        dependencies:
-          solapp: "*"
-      
+            exports.about =
+              title: "#{project.name}"
+              description: "..."
+              html5:
+                css: [
+                  "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"
+                  "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
+                ]
+                js: [
+                  "//code.jquery.com/jquery-1.10.2.min.js"
+                  "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
+                ]
+                files: [
+                ]
+              dependencies:
+                solapp: "*"
+            
 
 #{"{"}{{1 Main
 
-      
-      exports.main = (opt) ->
-        opt.setStyle {h1: {backgroundColor: "green"}}
-        opt.setContent ["div", ["h1", "hello world"]]
-        opt.done()
-      
-      """
+            exports.main = (opt) ->
+              opt.setStyle {h1: {backgroundColor: "green"}}
+              opt.setContent ["div", ["h1", "hello world"]]
+              opt.done()
+    
+            """
 
 ## ensureSolAppInstalled
 
@@ -462,14 +454,14 @@ TODO, maybe make this passed around as parameter
       project = undefined
       loadProject = (dirname, done) ->
         ensureSolAppInstalled ->
-          pkg = JSON.parse (sa.readFileSync dirname + "/package.json") || "{}"
+          pkg = JSON.parse (solapp.readFileSync dirname + "/package.json") || "{}"
           name = pkg.name || dirname.split("/").slice(-1)[0]
           project =
             dirname: dirname
             name: name
             package: pkg
           ensureCoffeeSource()
-          project.source = sa.readFileSync "#{dirname}/#{project.name}.coffee"
+          project.source = solapp.readFileSync "#{dirname}/#{project.name}.coffee"
           project.module = require("#{dirname}/#{project.name}.coffee")
           expandPackage()
           done project
@@ -478,7 +470,7 @@ TODO, maybe make this passed around as parameter
 ## build - Actual build function
 
       build = (done) ->
-        next = sa.whenDone ->
+        next = solapp.whenDone ->
           ensureGit done
     
         console.log "writing package.json"
@@ -563,17 +555,17 @@ TODO, maybe make this passed around as parameter
         express = require "express"
         app = express()
         app.all "/", (req, res) ->
-          res.end "<!DOCTYPE html>" + sa.jsonml2html ["html"
+          res.end "<!DOCTYPE html>" + solapp.jsonml2html ["html"
             ["head"].concat htmlHead(opt.project).concat [
               ["script", {src: coffeesource}, ""]
               ["style#solappStyle", ""]]
             ["body"
               ["div#solappContent", ""]
-              ["script", ["rawhtml", "exports={};isDevServer=true"]]
+              ["script", ["rawhtml", "global=window;exports={};isDevServer=true"]]
               ["script", {type: "text/coffeescript", src: "node_modules/solapp/solapp.coffee"}, ""]
-              ["script", {type: "text/coffeescript"}, ["rawhtml", "window.solapp=window.exports;window.exports={}"]]
+              ["script", {type: "text/coffeescript"}, ["rawhtml", "window.exports={}"]]
               ["script", {type: "text/coffeescript", src: "#{opt.project.name}.coffee"}, ""]
-              ["script", {type: "text/coffeescript"}, ["rawhtml", "solapp.devserverMain(#{JSON.stringify opt.project.package})"]]]]
+              ["script", {type: "text/coffeescript"}, ["rawhtml", "require('solapp').devserverMain(#{JSON.stringify opt.project.package})"]]]]
         app.use express.static process.cwd()
         app.listen 8080
         console.log "started devserver on port 8080"
@@ -582,15 +574,16 @@ TODO, maybe make this passed around as parameter
 ## Code running in browser
 
     if isDevServer
-      exports.devserverMain = (pkg)->
+      window.require = (module) -> if module == "solapp" then return solapp else throw "not implemented"
+      solapp.devserverMain = (pkg)->
         opt =
           args: []
           setStyle: (style) ->
             document.getElementById("solappStyle").innerHTML =
-              ("#{key}{#{sa.obj2style val}}" for key, val of style).join ""
-          setContent: (html) -> document.getElementById("solappContent").innerHTML = sa.jsonml2html html
+              ("#{key}{#{solapp.obj2style val}}" for key, val of style).join ""
+          setContent: (html) -> document.getElementById("solappContent").innerHTML = solapp.jsonml2html html
           done: -> undefined
-        exports.main sa.extend {}, solapp, opt
+        exports.main solapp.extend {}, solapp, opt
     
 
 # SolApp dispatch
@@ -620,7 +613,7 @@ TODO, maybe make this passed around as parameter
 
 ## main dispatch
 
-      if require.main == module then sa.nextTick ->
+      if require.main == module then solapp.nextTick ->
         loadProject process.cwd(), ->
           commands =
             start: devserver
@@ -629,7 +622,7 @@ TODO, maybe make this passed around as parameter
             dist: build
           command = process.argv[2]
           fn = commands[process.argv[2]] || project.module.main
-          fn?(sa.extend {}, sa, {
+          fn?(solapp.extend {}, solapp, {
             project: project
             cmd: command
             args: process.argv.slice(3)

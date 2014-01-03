@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, sa, updateGitIgnore,
+  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, solapp, updateGitIgnore,
     __slice = [].slice;
 
   exports.about = {
@@ -22,21 +22,17 @@
     }
   };
 
+  solapp = exports;
+
   exports.be = function(global) {
     var _ref;
+    global.solapp = solapp;
     if (typeof isNodeJs !== "boolean") {
       global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
       global.isDevServer = typeof isDevServer !== "undefined" && isDevServer;
-      global.isTesting = isNodeJs && process.argv[2] === "test";
+      return global.isTesting = isNodeJs && process.argv[2] === "test";
     }
-    return global.solapp = exports;
   };
-
-  if (typeof window !== "undefined" && window !== null) {
-    window.global = window;
-  }
-
-  sa = exports;
 
   exports.be(global);
 
@@ -46,11 +42,11 @@
     require("coffee-script");
   }
 
-  sa.sleep = function(t, fn) {
+  solapp.sleep = function(t, fn) {
     return setTimeout(fn, t * 1000);
   };
 
-  sa.extend = function() {
+  solapp.extend = function() {
     var key, source, sources, target, val, _i, _len;
     target = arguments[0], sources = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
     for (_i = 0, _len = sources.length; _i < _len; _i++) {
@@ -63,7 +59,7 @@
     return target;
   };
 
-  sa.whenDone = function(done) {
+  solapp.whenDone = function(done) {
     var count, results;
     count = 0;
     results = [];
@@ -83,11 +79,11 @@
     };
   };
 
-  sa.nextTick = isNodeJs ? process.nextTick : function(fn) {
+  solapp.nextTick = isNodeJs ? process.nextTick : function(fn) {
     return setTimeout(fn, 0);
   };
 
-  sa.throttleAsyncFn = function(fn, delay) {
+  solapp.throttleAsyncFn = function(fn, delay) {
     var lastTime, rerun, run, running, schedule, scheduled;
     delay || (delay = 1000);
     running = [];
@@ -124,13 +120,13 @@
     };
   };
 
-  sa.xmlEscape = function(str) {
+  solapp.xmlEscape = function(str) {
     return String(str).replace(RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), function(c) {
       return "&#" + (c.charCodeAt(0)) + ";";
     });
   };
 
-  sa.obj2style = function(obj) {
+  solapp.obj2style = function(obj) {
     var key, val;
     return ((function() {
       var _results;
@@ -149,10 +145,10 @@
     })()).join(";");
   };
 
-  sa.jsonml2html = function(arr) {
+  solapp.jsonml2html = function(arr) {
     var attr, key, result, tag, val, _ref, _ref1;
     if (!Array.isArray(arr)) {
-      return "" + (sa.xmlEscape(arr));
+      return "" + (solapp.xmlEscape(arr));
     }
     if (arr[0] === "rawhtml") {
       return arr[1];
@@ -160,9 +156,9 @@
     if (((_ref = arr[1]) != null ? _ref.constructor : void 0) !== Object) {
       arr = [arr[0], {}].concat(arr.slice(1));
     }
-    attr = sa.extend(arr[1]);
+    attr = solapp.extend(arr[1]);
     if (((_ref1 = attr.style) != null ? _ref1.constructor : void 0) === Object) {
-      attr.style = sa.obj2style(attr.style);
+      attr.style = solapp.obj2style(attr.style);
     }
     tag = arr[0].replace(/#([^.#]*)/, function(_, id) {
       attr.id = id;
@@ -177,18 +173,18 @@
       _results = [];
       for (key in attr) {
         val = attr[key];
-        _results.push(" " + key + "=\"" + (sa.xmlEscape(val)) + "\"");
+        _results.push(" " + key + "=\"" + (solapp.xmlEscape(val)) + "\"");
       }
       return _results;
     })()).join("")) + ">";
     if (arr.length > 2) {
-      result += "" + (arr.slice(2).map(sa.jsonml2html).join("")) + "</" + tag + ">";
+      result += "" + (arr.slice(2).map(solapp.jsonml2html).join("")) + "</" + tag + ">";
     }
     return result;
   };
 
   if (isNodeJs) {
-    sa.readFileSync = function(filename) {
+    solapp.readFileSync = function(filename) {
       var e;
       try {
         return fs.readFileSync(filename, "utf8");
@@ -209,7 +205,7 @@
         name: project.name,
         version: version.join(".")
       };
-      sa.extend(pkg, project.module.about || {});
+      solapp.extend(pkg, project.module.about || {});
       if (pkg.title == null) {
         pkg.title = pkg.name;
       }
@@ -312,7 +308,7 @@
     ensureCoffeeSource = function() {
       if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
         console.log("writing " + project.name + ".coffee");
-        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n \nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\n\n#" + "{" + "{{1 Meta information\n\nexports.about =\n  title: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n  dependencies:\n    solapp: \"*\"\n\n#" + "{" + "{{1 Main\n\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
+        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\nrequire(\"solapp\").be global \n\n#" + "{" + "{{1 Meta information\nexports.about =\n  title: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n  dependencies:\n    solapp: \"*\"\n\n#" + "{" + "{{1 Main\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
       }
     };
     ensureSolAppInstalled = function(done) {
@@ -345,7 +341,7 @@
     loadProject = function(dirname, done) {
       return ensureSolAppInstalled(function() {
         var name, pkg;
-        pkg = JSON.parse((sa.readFileSync(dirname + "/package.json")) || "{}");
+        pkg = JSON.parse((solapp.readFileSync(dirname + "/package.json")) || "{}");
         name = pkg.name || dirname.split("/").slice(-1)[0];
         project = {
           dirname: dirname,
@@ -353,7 +349,7 @@
           "package": pkg
         };
         ensureCoffeeSource();
-        project.source = sa.readFileSync("" + dirname + "/" + project.name + ".coffee");
+        project.source = solapp.readFileSync("" + dirname + "/" + project.name + ".coffee");
         project.module = require("" + dirname + "/" + project.name + ".coffee");
         expandPackage();
         return done(project);
@@ -361,7 +357,7 @@
     };
     build = function(done) {
       var next, travis, version, _ref;
-      next = sa.whenDone(function() {
+      next = solapp.whenDone(function() {
         return ensureGit(done);
       });
       console.log("writing package.json");
@@ -460,7 +456,7 @@
       express = require("express");
       app = express();
       app.all("/", function(req, res) {
-        return res.end("<!DOCTYPE html>" + sa.jsonml2html([
+        return res.end("<!DOCTYPE html>" + solapp.jsonml2html([
           "html", ["head"].concat(htmlHead(opt.project).concat([
             [
               "script", {
@@ -468,7 +464,7 @@
               }, ""
             ], ["style#solappStyle", ""]
           ])), [
-            "body", ["div#solappContent", ""], ["script", ["rawhtml", "exports={};isDevServer=true"]], [
+            "body", ["div#solappContent", ""], ["script", ["rawhtml", "global=window;exports={};isDevServer=true"]], [
               "script", {
                 type: "text/coffeescript",
                 src: "node_modules/solapp/solapp.coffee"
@@ -476,7 +472,7 @@
             ], [
               "script", {
                 type: "text/coffeescript"
-              }, ["rawhtml", "window.solapp=window.exports;window.exports={}"]
+              }, ["rawhtml", "window.exports={}"]
             ], [
               "script", {
                 type: "text/coffeescript",
@@ -485,7 +481,7 @@
             ], [
               "script", {
                 type: "text/coffeescript"
-              }, ["rawhtml", "solapp.devserverMain(" + (JSON.stringify(opt.project["package"])) + ")"]
+              }, ["rawhtml", "require('solapp').devserverMain(" + (JSON.stringify(opt.project["package"])) + ")"]
             ]
           ]
         ]));
@@ -497,7 +493,14 @@
   }
 
   if (isDevServer) {
-    exports.devserverMain = function(pkg) {
+    window.require = function(module) {
+      if (module === "solapp") {
+        return solapp;
+      } else {
+        throw "not implemented";
+      }
+    };
+    solapp.devserverMain = function(pkg) {
       var opt;
       opt = {
         args: [],
@@ -508,19 +511,19 @@
             _results = [];
             for (key in style) {
               val = style[key];
-              _results.push("" + key + "{" + (sa.obj2style(val)) + "}");
+              _results.push("" + key + "{" + (solapp.obj2style(val)) + "}");
             }
             return _results;
           })()).join("");
         },
         setContent: function(html) {
-          return document.getElementById("solappContent").innerHTML = sa.jsonml2html(html);
+          return document.getElementById("solappContent").innerHTML = solapp.jsonml2html(html);
         },
         done: function() {
           return void 0;
         }
       };
-      return exports.main(sa.extend({}, solapp, opt));
+      return exports.main(solapp.extend({}, solapp, opt));
     };
   }
 
@@ -550,7 +553,7 @@
         return build();
       };
       if (require.main === module) {
-        return sa.nextTick(function() {
+        return solapp.nextTick(function() {
           return loadProject(process.cwd(), function() {
             var command, commands, fn;
             commands = {
@@ -563,7 +566,7 @@
             };
             command = process.argv[2];
             fn = commands[process.argv[2]] || project.module.main;
-            return typeof fn === "function" ? fn(sa.extend({}, sa, {
+            return typeof fn === "function" ? fn(solapp.extend({}, solapp, {
               project: project,
               cmd: command,
               args: process.argv.slice(3),
