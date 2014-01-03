@@ -24,9 +24,8 @@
 
   solapp = exports;
 
-  exports.be = function(global) {
+  exports.globalDefines = function(global) {
     var _ref;
-    global.solapp = solapp;
     if (typeof isNodeJs !== "boolean") {
       global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
       global.isDevServer = typeof isDevServer !== "undefined" && isDevServer;
@@ -34,7 +33,7 @@
     }
   };
 
-  exports.be(global);
+  exports.globalDefines(global);
 
   if (isNodeJs) {
     coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js";
@@ -244,7 +243,7 @@
       };
     };
     genReadme = function(project) {
-      var isCode, line, pkg, prevWasCode, result, source, _i, _len, _ref;
+      var isCode, line, pkg, prevWasCode, result, source, _i, _len, _ref, _ref1;
       source = project.source;
       pkg = project["package"];
       result = "";
@@ -257,7 +256,7 @@
       _ref = source.split("\n");
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         line = _ref[_i];
-        if (line.trim() === "#!/usr/bin/env coffee") {
+        if ((_ref1 = line.trim()) === "#!/usr/bin/env coffee" || _ref1 === "require(\"solapp\").globalDefines global") {
           continue;
         }
         if ((line.search(/^\s*#/)) === -1) {
@@ -308,7 +307,7 @@
     ensureCoffeeSource = function() {
       if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
         console.log("writing " + project.name + ".coffee");
-        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\nrequire(\"solapp\").be global \n\n#" + "{" + "{{1 Meta information\nexports.about =\n  title: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n  dependencies:\n    solapp: \"*\"\n\n#" + "{" + "{{1 Main\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
+        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/usr/bin/env coffee\nrequire(\"solapp\").globalDefines global\nexports.about =\n  title: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n  dependencies:\n    solapp: \"*\"\n\n#" + "{" + "{{1 Main\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
       }
     };
     ensureSolAppInstalled = function(done) {
