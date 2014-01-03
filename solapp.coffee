@@ -51,8 +51,10 @@
 # - commands (`solapp command`): 
 #   - `start` runs in node, and starts local development server on port 8080, watch file, and automatic reload on change.
 #   - `test` runs unit tests
-#   - `commit ...commitmsg...` run tests, increase minor version, build items in dist, git commit -a, git pull, git push, npm publish, upload to phonegap build
-#   - `dist` build items in dist
+#   - `commit ...commitmsg...` run tests, increase minor version, `build`, git commit -a, git pull, git push
+#   - `build` build all items
+#   - `publish ...commitmsg...` run tests, increase minor version, `commit`, git-tag, upload to npm, phonegap-build, bower, custom dist scripts ...
+#   - `create` - ensure name is available, mkdir, create skeleton app
 # - input
 #   - $APPNAME.coffee - $APPNAME should be the `name` in package.json
 #   - splash.png
@@ -80,40 +82,57 @@
 #   - browser extension...
 #   - smarttv-apps...
 #
-#{{{2 Done
+#{{{2 Versions
 #
-# - basic devserver
-# - autocreate project in current directory
-# - use `exports.about` for package-info, overriding/overwriting package.json
-# - manifest.appcache
-# - main/dispatch
-# - commit command
-# - add command-line app when installing globally
-# - automatically update .gitignore
-# - generate/edit package.json
-# - generate README.md
-# - compile to $APPNAME.js
-# - isNodeJs - optional code - automatically removable for web environment
-# - Automatically create .travis.yml
+# - version 0.1
+# - development
+#   - basic devserver
+#   - autocreate project in current directory
+#   - use `exports.about` for package-info, overriding/overwriting package.json
+#   - manifest.appcache
+#   - main/dispatch
+#   - commit command
+#   - add command-line app when installing globally
+#   - automatically update .gitignore
+#   - generate/edit package.json
+#   - generate README.md
+#   - compile to $APPNAME.js
+#   - isNodeJs - optional code - automatically removable for web environment
+#   - Automatically create .travis.yml
 #
 #{{{2 Roadmap
 #
 # - 0.1 first working prototype: npm-modules, html5, phonegap-build
-#   - dist command
+#   - `build` command
+#   - `test` command
 #   - refactor/cleanup
+#   - basic require-handling on client
+#   - define global in devserver/web-client
+#   - define isNodeJs etc with `require("solapp").be(global)`
+#   - minified js-library for web
+# - 0.2 real-world use within 360º, uccorg-backend and maybe more
+#   - stuff needed for 360º 
+#   - stuff needed for uccorg backend
+#   - autoreload devserver content on file change, restart/execute server
+#   - api-creation-library
+#   - faye-support
+#   - only increment version on publish
+#     - have date/time instead of version in manifest
+#   - basic publish command with git-tag
+# - later
 #   - generate index.html
 #   - config.xml
-#   - minified js-library for web
-# - 0.2 module-dependencies and testing
+#   - publish command
+#   - `create` - and disable autocreation in current dir
 #   - automatic creation/submission of phonegap apps using phonegap app api
 #   - routes on client
-#   - autoreload devserver content on file change
 #   - optional appcache/index.html/$APPNAME.js/...
 #   - addToHomeScreen
 #   - scaled icons etc.
 #   - test framework
 #   - phantomjs-test
 #   - minify build
+#   - infer dependencies from `require`-analysis of compiled coffeescript
 #
 #{{{1 Meta information
 exports.about =
@@ -133,12 +152,17 @@ exports.about =
   bin: {solapp: "./solapp.coffee"}
 
 #{{{1 Boilerplate
-sa = exports
+exports.be = (global) ->
+  if typeof isNodeJs != "boolean"
+    global.isNodeJs = if process?.versions?.node then true else false
+    global.isDevServer = typeof isDevServer != "undefined" && isDevServer
+    global.isTesting = isNodeJs && process.argv[2] == "test"
+  global.solapp = exports
+
 window?.global = window
-if typeof isNodeJs != "boolean"
-  global.isNodeJs = if process?.versions?.node then true else false
-  global.isDevServer = typeof isDevServer != "undefined" && isDevServer
-  global.isTesting = isNodeJs && process.argv[2] == "test"
+sa = exports
+exports.be global
+
 #{{{1 Initial stuff
 if isNodeJs
   coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"

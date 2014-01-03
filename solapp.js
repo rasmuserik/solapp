@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, sa, updateGitIgnore, _ref,
+  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, sa, updateGitIgnore,
     __slice = [].slice;
 
   exports.about = {
@@ -22,17 +22,23 @@
     }
   };
 
-  sa = exports;
+  exports.be = function(global) {
+    var _ref;
+    if (typeof isNodeJs !== "boolean") {
+      global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
+      global.isDevServer = typeof isDevServer !== "undefined" && isDevServer;
+      global.isTesting = isNodeJs && process.argv[2] === "test";
+    }
+    return global.solapp = exports;
+  };
 
   if (typeof window !== "undefined" && window !== null) {
     window.global = window;
   }
 
-  if (typeof isNodeJs !== "boolean") {
-    global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
-    global.isDevServer = typeof isDevServer !== "undefined" && isDevServer;
-    global.isTesting = isNodeJs && process.argv[2] === "test";
-  }
+  sa = exports;
+
+  exports.be(global);
 
   if (isNodeJs) {
     coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js";
@@ -144,18 +150,18 @@
   };
 
   sa.jsonml2html = function(arr) {
-    var attr, key, result, tag, val, _ref1, _ref2;
+    var attr, key, result, tag, val, _ref, _ref1;
     if (!Array.isArray(arr)) {
       return "" + (sa.xmlEscape(arr));
     }
     if (arr[0] === "rawhtml") {
       return arr[1];
     }
-    if (((_ref1 = arr[1]) != null ? _ref1.constructor : void 0) !== Object) {
+    if (((_ref = arr[1]) != null ? _ref.constructor : void 0) !== Object) {
       arr = [arr[0], {}].concat(arr.slice(1));
     }
     attr = sa.extend(arr[1]);
-    if (((_ref2 = attr.style) != null ? _ref2.constructor : void 0) === Object) {
+    if (((_ref1 = attr.style) != null ? _ref1.constructor : void 0) === Object) {
       attr.style = sa.obj2style(attr.style);
     }
     tag = arr[0].replace(/#([^.#]*)/, function(_, id) {
@@ -196,7 +202,7 @@
 
   if (isNodeJs) {
     expandPackage = function() {
-      var pkg, version, _base, _base1, _base2, _ref1;
+      var pkg, version, _base, _base1, _base2, _ref;
       version = (project["package"].version || "0.0.1").split(".");
       version[2] = +version[2] + 1;
       pkg = project["package"] = {
@@ -223,9 +229,9 @@
       if ((_base1 = pkg.scripts).test == null) {
         _base1.test = "node ./node_modules/solapp/solapp.js test";
       }
-      if ((_ref1 = pkg.html5) != null) {
-        if (_ref1.files == null) {
-          _ref1.files = [];
+      if ((_ref = pkg.html5) != null) {
+        if (_ref.files == null) {
+          _ref.files = [];
         }
       }
       if (pkg.dependencies == null) {
@@ -242,7 +248,7 @@
       };
     };
     genReadme = function(project) {
-      var isCode, line, pkg, prevWasCode, result, source, _i, _len, _ref1;
+      var isCode, line, pkg, prevWasCode, result, source, _i, _len, _ref;
       source = project.source;
       pkg = project["package"];
       result = "";
@@ -252,9 +258,9 @@
       result += "# " + (pkg.title || pkg.name) + "\n";
       result += "[![ci](https://secure.travis-ci.org/" + pkg.owner + "/" + pkg.name + ".png)](http://travis-ci.org/" + pkg.owner + "/" + pkg.name + ")\n";
       result += "\n" + pkg.description + "\n";
-      _ref1 = source.split("\n");
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        line = _ref1[_i];
+      _ref = source.split("\n");
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        line = _ref[_i];
         if (line.trim() === "#!/usr/bin/env coffee") {
           continue;
         }
@@ -354,7 +360,7 @@
       });
     };
     build = function(done) {
-      var next, travis, version, _ref1;
+      var next, travis, version, _ref;
       next = sa.whenDone(function() {
         return ensureGit(done);
       });
@@ -369,7 +375,7 @@
       travis = "language: node_js\nnode_js:\n  - 0.10 \n";
       fs.writeFile("" + project.dirname + "/.travis.yml", travis, next());
       console.log("writing manifest.appcache");
-      fs.writeFile("" + project.dirname + "/manifest.appcache", "CACHE MANIFEST\n# " + project["package"].name + " " + project["package"].version + "\nCACHE\nindex.html\n" + ((((_ref1 = project["package"].html5) != null ? _ref1.files : void 0) || []).join("\n")) + "\n" + (fs.existsSync("" + project.dirname + "/icon.png") ? "icon.png" : "") + "\nNETWORK\n*\nhttp://*\nhttps://*\n", next());
+      fs.writeFile("" + project.dirname + "/manifest.appcache", "CACHE MANIFEST\n# " + project["package"].name + " " + project["package"].version + "\nCACHE\nindex.html\n" + ((((_ref = project["package"].html5) != null ? _ref.files : void 0) || []).join("\n")) + "\n" + (fs.existsSync("" + project.dirname + "/icon.png") ? "icon.png" : "") + "\nNETWORK\n*\nhttp://*\nhttps://*\n", next());
       console.log("writing README.md");
       fs.writeFile("" + project.dirname + "/README.md", genReadme(project), next());
       console.log("writing " + project.name + ".js");
