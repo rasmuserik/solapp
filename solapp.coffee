@@ -82,6 +82,7 @@
 #
 #{{{2 Done
 #
+# - basic devserver
 # - autocreate project in current directory
 # - use `exports.about` for package-info, overriding/overwriting package.json
 # - manifest.appcache
@@ -98,14 +99,15 @@
 #{{{2 Roadmap
 #
 # - 0.1 first working prototype: npm-modules, html5, phonegap-build
-#   - devserver command
 #   - dist command
-#   - config.xml
-#   - generate index.html
 #   - refactor/cleanup
+#   - generate index.html
+#   - config.xml
+#   - minified js-library for web
 # - 0.2 module-dependencies and testing
 #   - automatic creation/submission of phonegap apps using phonegap app api
-#   - minified js-library for web
+#   - routes on client
+#   - autoreload devserver content on file change
 #   - optional appcache/index.html/$APPNAME.js/...
 #   - addToHomeScreen
 #   - scaled icons etc.
@@ -120,7 +122,7 @@ exports.about =
   dependencies:
     async: "*"
     "coffee-script": "*"
-    express: "*"
+    express: "3.x"
     glob: "*"
     request: "*"
     "socket.io": "*"
@@ -135,6 +137,7 @@ sa = exports
 window?.global = window
 if typeof isNodeJs != "boolean"
   global.isNodeJs = if process?.versions?.node then true else false
+  global.isDevServer = typeof isDevServer != "undefined" && isDevServer
   global.isTesting = isNodeJs && process.argv[2] == "test"
 #{{{1 Initial stuff
 if isNodeJs
@@ -196,8 +199,8 @@ sa.throttleAsyncFn = (fn, delay) ->
 
 #{{{2 xmlEscape
 sa.xmlEscape = (str) -> String(str).replace RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), (c) -> "&##{c.charCodeAt 0};"
-#{{{2 obj2css
-sa.obj2css = (obj) ->
+#{{{2 obj2style
+sa.obj2style = (obj) ->
   (for key, val of obj
     key = key.replace /[A-Z]/g, (c) -> "-" + c.toLowerCase()
     val = "#{val}px" if typeof val == "number"
@@ -212,7 +215,7 @@ sa.jsonml2html = (arr) ->
   arr = [arr[0], {}].concat arr.slice(1) if arr[1]?.constructor != Object
   attr = sa.extend arr[1]
   # convert style objects to strings
-  attr.style = sa.obj2css attr.style if attr.style?.constructor == Object
+  attr.style = sa.obj2style attr.style if attr.style?.constructor == Object
   # shorthand for classes and ids
   tag = arr[0].replace /#([^.#]*)/, (_, id) -> attr.id = id; ""
   tag = tag.replace /\.([^.#]*)/g, (_, cls) ->
@@ -324,7 +327,7 @@ if isNodeJs
   ##{"{"}{{1 Meta information
   
   exports.about =
-    fullname: "#{project.name}"
+    title: "#{project.name}"
     description: "..."
     html5:
       css: [
@@ -440,13 +443,56 @@ if isNodeJs
       ["body", ""]
     ]
   
-#{{{1 Main dispatch
-if isNodeJs then do ->
+#{{{1 devserver
+if isNodeJs
+  #{{{2 htmlHead
+  htmlHead = (project) ->
+    head = [
+        ["title", project.package.title]
+        ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
+        ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
+        ["meta", {name: "HandheldFriendly", content: "true"}]
+        ["meta", {name: "format-detection", content: "telephone=no"}]
+    ]
+    str = "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"
+    str += ", user-scalable=0" if project.package.userScalable
+    head.push ["meta", {name: "viewport", content: str}]
+    return head
   #{{{2 devserver
   devserver = (opt) ->
-    build ->
-      undefined
 
+    express = require "express"
+    app = express()
+    app.all "/", (req, res) ->
+      res.end "<!DOCTYPE html>" + sa.jsonml2html ["html"
+        ["head"].concat htmlHead(opt.project).concat [
+          ["script", {src: coffeesource}, ""]
+          ["style#solappStyle", ""]]
+        ["body"
+          ["div#solappContent", ""]
+          ["script", ["rawhtml", "exports={};isDevServer=true"]]
+          ["script", {type: "text/coffeescript", src: "node_modules/solapp/solapp.coffee"}, ""]
+          ["script", {type: "text/coffeescript"}, ["rawhtml", "window.solapp=window.exports;window.exports={}"]]
+          ["script", {type: "text/coffeescript", src: "#{opt.project.name}.coffee"}, ""]
+          ["script", {type: "text/coffeescript"}, ["rawhtml", "solapp.devserverMain(#{JSON.stringify opt.project.package})"]]]]
+    app.use express.static process.cwd()
+    app.listen 8080
+    console.log "started devserver on port 8080"
+
+#{{{2 Code running in browser
+if isDevServer
+  exports.devserverMain = (pkg)->
+    opt =
+      args: []
+      setStyle: (style) ->
+        document.getElementById("solappStyle").innerHTML =
+          ("#{key}{#{sa.obj2style val}}" for key, val of style).join ""
+      setContent: (html) -> document.getElementById("solappContent").innerHTML = sa.jsonml2html html
+      done: -> undefined
+    exports.main sa.extend {}, solapp, opt
+
+#{{{1 SolApp dispatch
+if isNodeJs then do ->
   #{{{2 commit
   commit = (opt) ->
     msg = opt.args.join(" ").replace(/"/g, "\\\"")
@@ -472,13 +518,15 @@ if isNodeJs then do ->
         test: -> build() #TODO
         commit: commit
         dist: build
-      commands[undefined] = commands.start
       command = process.argv[2]
       fn = commands[process.argv[2]] || project.module.main
       fn?(sa.extend {}, sa, {
+        project: project
         cmd: command
         args: process.argv.slice(3)
         setStyle: -> undefined
         setContent: -> undefined
         done: -> undefined
       })
+#{{{1 main
+exports.main = -> undefined

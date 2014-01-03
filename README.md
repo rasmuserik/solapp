@@ -86,6 +86,7 @@ any additional properties will also be passed on into `package.json`
 
 ## Done
 
+- basic devserver
 - autocreate project in current directory
 - use `exports.about` for package-info, overriding/overwriting package.json
 - manifest.appcache
@@ -102,14 +103,15 @@ any additional properties will also be passed on into `package.json`
 ## Roadmap
 
 - 0.1 first working prototype: npm-modules, html5, phonegap-build
-  - devserver command
   - dist command
-  - config.xml
-  - generate index.html
   - refactor/cleanup
+  - generate index.html
+  - config.xml
+  - minified js-library for web
 - 0.2 module-dependencies and testing
   - automatic creation/submission of phonegap apps using phonegap app api
-  - minified js-library for web
+  - routes on client
+  - autoreload devserver content on file change
   - optional appcache/index.html/$APPNAME.js/...
   - addToHomeScreen
   - scaled icons etc.
@@ -125,7 +127,7 @@ any additional properties will also be passed on into `package.json`
       dependencies:
         async: "*"
         "coffee-script": "*"
-        express: "*"
+        express: "3.x"
         glob: "*"
         request: "*"
         "socket.io": "*"
@@ -142,6 +144,7 @@ any additional properties will also be passed on into `package.json`
     window?.global = window
     if typeof isNodeJs != "boolean"
       global.isNodeJs = if process?.versions?.node then true else false
+      global.isDevServer = typeof isDevServer != "undefined" && isDevServer
       global.isTesting = isNodeJs && process.argv[2] == "test"
 
 # Initial stuff
@@ -218,9 +221,9 @@ Utility function for combining several callbacks into a single one. `fn = sa.whe
 
     sa.xmlEscape = (str) -> String(str).replace RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), (c) -> "&##{c.charCodeAt 0};"
 
-## obj2css
+## obj2style
 
-    sa.obj2css = (obj) ->
+    sa.obj2style = (obj) ->
       (for key, val of obj
         key = key.replace /[A-Z]/g, (c) -> "-" + c.toLowerCase()
         val = "#{val}px" if typeof val == "number"
@@ -243,7 +246,7 @@ normalise jsonml, make sure it contains attributes
 
 convert style objects to strings
 
-      attr.style = sa.obj2css attr.style if attr.style?.constructor == Object
+      attr.style = sa.obj2style attr.style if attr.style?.constructor == Object
 
 shorthand for classes and ids
 
@@ -377,7 +380,7 @@ Define `isNodeJs` in a way such that it can be optimised away by uglify-js
 
       
       exports.about =
-        fullname: "#{project.name}"
+        title: "#{project.name}"
         description: "..."
         html5:
           css: [
@@ -510,16 +513,65 @@ TODO, maybe make this passed around as parameter
         ]
       
 
-# Main dispatch
+# devserver
 
-    if isNodeJs then do ->
+    if isNodeJs
+
+## htmlHead
+
+      htmlHead = (project) ->
+        head = [
+            ["title", project.package.title]
+            ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
+            ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
+            ["meta", {name: "HandheldFriendly", content: "true"}]
+            ["meta", {name: "format-detection", content: "telephone=no"}]
+        ]
+        str = "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"
+        str += ", user-scalable=0" if project.package.userScalable
+        head.push ["meta", {name: "viewport", content: str}]
+        return head
 
 ## devserver
 
       devserver = (opt) ->
-        build ->
-          undefined
     
+        express = require "express"
+        app = express()
+        app.all "/", (req, res) ->
+          res.end "<!DOCTYPE html>" + sa.jsonml2html ["html"
+            ["head"].concat htmlHead(opt.project).concat [
+              ["script", {src: coffeesource}, ""]
+              ["style#solappStyle", ""]]
+            ["body"
+              ["div#solappContent", ""]
+              ["script", ["rawhtml", "exports={};isDevServer=true"]]
+              ["script", {type: "text/coffeescript", src: "node_modules/solapp/solapp.coffee"}, ""]
+              ["script", {type: "text/coffeescript"}, ["rawhtml", "window.solapp=window.exports;window.exports={}"]]
+              ["script", {type: "text/coffeescript", src: "#{opt.project.name}.coffee"}, ""]
+              ["script", {type: "text/coffeescript"}, ["rawhtml", "solapp.devserverMain(#{JSON.stringify opt.project.package})"]]]]
+        app.use express.static process.cwd()
+        app.listen 8080
+        console.log "started devserver on port 8080"
+    
+
+## Code running in browser
+
+    if isDevServer
+      exports.devserverMain = (pkg)->
+        opt =
+          args: []
+          setStyle: (style) ->
+            document.getElementById("solappStyle").innerHTML =
+              ("#{key}{#{sa.obj2style val}}" for key, val of style).join ""
+          setContent: (html) -> document.getElementById("solappContent").innerHTML = sa.jsonml2html html
+          done: -> undefined
+        exports.main sa.extend {}, solapp, opt
+    
+
+# SolApp dispatch
+
+    if isNodeJs then do ->
 
 ## commit
 
@@ -551,16 +603,20 @@ TODO, maybe make this passed around as parameter
             test: -> build() #TODO
             commit: commit
             dist: build
-          commands[undefined] = commands.start
           command = process.argv[2]
           fn = commands[process.argv[2]] || project.module.main
           fn?(sa.extend {}, sa, {
+            project: project
             cmd: command
             args: process.argv.slice(3)
             setStyle: -> undefined
             setContent: -> undefined
             done: -> undefined
           })
+
+# main
+
+    exports.main = -> undefined
     
 
 

@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, loadProject, project, sa, updateGitIgnore, _ref,
+  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, sa, updateGitIgnore, _ref,
     __slice = [].slice;
 
   exports.about = {
@@ -8,7 +8,7 @@
     dependencies: {
       async: "*",
       "coffee-script": "*",
-      express: "*",
+      express: "3.x",
       glob: "*",
       request: "*",
       "socket.io": "*",
@@ -30,6 +30,7 @@
 
   if (typeof isNodeJs !== "boolean") {
     global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
+    global.isDevServer = typeof isDevServer !== "undefined" && isDevServer;
     global.isTesting = isNodeJs && process.argv[2] === "test";
   }
 
@@ -123,7 +124,7 @@
     });
   };
 
-  sa.obj2css = function(obj) {
+  sa.obj2style = function(obj) {
     var key, val;
     return ((function() {
       var _results;
@@ -155,7 +156,7 @@
     }
     attr = sa.extend(arr[1]);
     if (((_ref2 = attr.style) != null ? _ref2.constructor : void 0) === Object) {
-      attr.style = sa.obj2css(attr.style);
+      attr.style = sa.obj2style(attr.style);
     }
     tag = arr[0].replace(/#([^.#]*)/, function(_, id) {
       attr.id = id;
@@ -305,7 +306,7 @@
     ensureCoffeeSource = function() {
       if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
         console.log("writing " + project.name + ".coffee");
-        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n \nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\n\n#" + "{" + "{{1 Meta information\n\nexports.about =\n  fullname: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n  dependencies:\n    solapp: \"*\"\n\n#" + "{" + "{{1 Main\n\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
+        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/bin/env coffee\n#" + "{" + "{{1 Boilerplate\n#\n# Define `isNodeJs` in a way such that it can be optimised away by uglify-js\n \nif typeof isNodeJs != \"boolean\"\n  (global? || window?).isNodeJs = if process?.versions?.node then true else false\n\n#" + "{" + "{{1 Meta information\n\nexports.about =\n  title: \"" + project.name + "\"\n  description: \"...\"\n  html5:\n    css: [\n      \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n    ]\n    js: [\n      \"//code.jquery.com/jquery-1.10.2.min.js\"\n      \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n    ]\n    files: [\n    ]\n  dependencies:\n    solapp: \"*\"\n\n#" + "{" + "{{1 Main\n\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()\n");
       }
     };
     ensureSolAppInstalled = function(done) {
@@ -411,13 +412,115 @@
   }
 
   if (isNodeJs) {
-    (function() {
-      var commit, devserver, dist;
-      devserver = function(opt) {
-        return build(function() {
+    htmlHead = function(project) {
+      var head, str;
+      head = [
+        ["title", project["package"].title], [
+          "meta", {
+            "http-equiv": "content-type",
+            content: "text/html;charset=UTF-8"
+          }
+        ], [
+          "meta", {
+            "http-equiv": "content-type",
+            content: "IE=edge,chrome=1"
+          }
+        ], [
+          "meta", {
+            name: "HandheldFriendly",
+            content: "true"
+          }
+        ], [
+          "meta", {
+            name: "format-detection",
+            content: "telephone=no"
+          }
+        ]
+      ];
+      str = "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0";
+      if (project["package"].userScalable) {
+        str += ", user-scalable=0";
+      }
+      head.push([
+        "meta", {
+          name: "viewport",
+          content: str
+        }
+      ]);
+      return head;
+    };
+    devserver = function(opt) {
+      var app, express;
+      express = require("express");
+      app = express();
+      app.all("/", function(req, res) {
+        return res.end("<!DOCTYPE html>" + sa.jsonml2html([
+          "html", ["head"].concat(htmlHead(opt.project).concat([
+            [
+              "script", {
+                src: coffeesource
+              }, ""
+            ], ["style#solappStyle", ""]
+          ])), [
+            "body", ["div#solappContent", ""], ["script", ["rawhtml", "exports={};isDevServer=true"]], [
+              "script", {
+                type: "text/coffeescript",
+                src: "node_modules/solapp/solapp.coffee"
+              }, ""
+            ], [
+              "script", {
+                type: "text/coffeescript"
+              }, ["rawhtml", "window.solapp=window.exports;window.exports={}"]
+            ], [
+              "script", {
+                type: "text/coffeescript",
+                src: "" + opt.project.name + ".coffee"
+              }, ""
+            ], [
+              "script", {
+                type: "text/coffeescript"
+              }, ["rawhtml", "solapp.devserverMain(" + (JSON.stringify(opt.project["package"])) + ")"]
+            ]
+          ]
+        ]));
+      });
+      app.use(express["static"](process.cwd()));
+      app.listen(8080);
+      return console.log("started devserver on port 8080");
+    };
+  }
+
+  if (isDevServer) {
+    exports.devserverMain = function(pkg) {
+      var opt;
+      opt = {
+        args: [],
+        setStyle: function(style) {
+          var key, val;
+          return document.getElementById("solappStyle").innerHTML = ((function() {
+            var _results;
+            _results = [];
+            for (key in style) {
+              val = style[key];
+              _results.push("" + key + "{" + (sa.obj2style(val)) + "}");
+            }
+            return _results;
+          })()).join("");
+        },
+        setContent: function(html) {
+          return document.getElementById("solappContent").innerHTML = sa.jsonml2html(html);
+        },
+        done: function() {
           return void 0;
-        });
+        }
       };
+      return exports.main(sa.extend({}, solapp, opt));
+    };
+  }
+
+  if (isNodeJs) {
+    (function() {
+      var commit, dist;
       commit = function(opt) {
         var msg;
         msg = opt.args.join(" ").replace(/"/g, "\\\"");
@@ -452,10 +555,10 @@
               commit: commit,
               dist: build
             };
-            commands[void 0] = commands.start;
             command = process.argv[2];
             fn = commands[process.argv[2]] || project.module.main;
             return typeof fn === "function" ? fn(sa.extend({}, sa, {
+              project: project,
               cmd: command,
               args: process.argv.slice(3),
               setStyle: function() {
@@ -473,5 +576,9 @@
       }
     })();
   }
+
+  exports.main = function() {
+    return void 0;
+  };
 
 }).call(this);

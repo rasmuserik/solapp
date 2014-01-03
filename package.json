@@ -1,12 +1,12 @@
 {
     "name": "solapp",
-    "version": "0.0.149",
+    "version": "0.0.159",
     "title": "SolApp",
     "description": "Framework for quickly creating apps",
     "dependencies": {
         "async": "*",
         "coffee-script": "*",
-        "express": "*",
+        "express": "3.x",
         "glob": "*",
         "request": "*",
         "socket.io": "*",
