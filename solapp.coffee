@@ -356,8 +356,7 @@ if isNodeJs
             ]
           dependencies:
             solapp: "*"
-
-        ##{"{"}{{1 Main
+        \n##{"{"}{{1 Main
         exports.main = (opt) ->
           opt.setStyle {h1: {backgroundColor: "green"}}
           opt.setContent ["div", ["h1", "hello world"]]
@@ -422,12 +421,11 @@ if isNodeJs
 
     console.log "writing manifest.appcache"
     fs.writeFile "#{project.dirname}/manifest.appcache", """
-      CACHE MANIFEST
-      # #{project.package.name} #{project.package.version}
+      CACHE MANIFEST\n# #{project.package.name} #{project.package.version}
       CACHE
       index.html
-      #{(project.package.html5?.files || []).join "\n"}
-      #{if fs.existsSync "#{project.dirname}/icon.png" then "icon.png" else ""}
+      \n#{(project.package.html5?.files || []).join "\n"}
+      \n#{if fs.existsSync "#{project.dirname}/icon.png" then "icon.png" else ""}
       NETWORK
       *
       http://*

@@ -370,7 +370,7 @@
       travis = "language: node_js\nnode_js:\n  - 0.10 \n";
       fs.writeFile("" + project.dirname + "/.travis.yml", travis, next());
       console.log("writing manifest.appcache");
-      fs.writeFile("" + project.dirname + "/manifest.appcache", "CACHE MANIFEST\n# " + project["package"].name + " " + project["package"].version + "\nCACHE\nindex.html\n" + ((((_ref = project["package"].html5) != null ? _ref.files : void 0) || []).join("\n")) + "\n" + (fs.existsSync("" + project.dirname + "/icon.png") ? "icon.png" : "") + "\nNETWORK\n*\nhttp://*\nhttps://*\n", next());
+      fs.writeFile("" + project.dirname + "/manifest.appcache", "CACHE MANIFEST\n# " + project["package"].name + " " + project["package"].version + "\nCACHE\nindex.html\n\n" + ((((_ref = project["package"].html5) != null ? _ref.files : void 0) || []).join("\n")) + "\n\n" + (fs.existsSync("" + project.dirname + "/icon.png") ? "icon.png" : "") + "\nNETWORK\n*\nhttp://*\nhttps://*\n", next());
       console.log("writing README.md");
       fs.writeFile("" + project.dirname + "/README.md", genReadme(project), next());
       console.log("writing " + project.name + ".js");
