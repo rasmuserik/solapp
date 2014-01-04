@@ -444,7 +444,7 @@ TODO: probably remove this one, when solapp-object is passed to main
 
 ### updateGitIgnore - update .gitignore
 
-      updateGitIgnore = (project, write) ->
+      updateGitIgnore = (project, done) ->
         fs.readFile "#{project.dirname}/.gitignore", "utf8", (err, data) ->
           data = "" if err
           data = data.split("\n")
@@ -453,7 +453,8 @@ TODO: probably remove this one, when solapp-object is passed to main
             result[line] = true
           result["node_modules"] = true
           result["*.swp"] = true
-          write ".gitignore", (Object.keys result).join("\n")
+          console.log "writing .gitignore"
+          fs.writeFile ".gitignore", (Object.keys result).join("\n") + "\n", done
     
 
 ### genCacheManifest
@@ -506,7 +507,7 @@ TODO: probably remove this one, when solapp-object is passed to main
     
         write "README.md", genReadme project
         write "package.json", JSON.stringify(project.package, null, 4)
-        updateGitIgnore project, write
+        updateGitIgnore project, next()
         write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
         write "manifest.appcache", genCacheManifest project if project.package.html5
         write "#{project.name}.js", compile project if project.package.npmjs

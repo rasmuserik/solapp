@@ -333,7 +333,7 @@
       result += "[![repos](https://ssl.solsort.com/_solapp_" + pkg.owner + "_" + pkg.name + ".png)](https://github.com/" + pkg.owner + "/" + pkg.name + ")";
       return result;
     };
-    updateGitIgnore = function(project, write) {
+    updateGitIgnore = function(project, done) {
       return fs.readFile("" + project.dirname + "/.gitignore", "utf8", function(err, data) {
         var line, result, _i, _len;
         if (err) {
@@ -347,7 +347,8 @@
         }
         result["node_modules"] = true;
         result["*.swp"] = true;
-        return write(".gitignore", (Object.keys(result)).join("\n"));
+        console.log("writing .gitignore");
+        return fs.writeFile(".gitignore", (Object.keys(result)).join("\n") + "\n", done);
       });
     };
     genCacheManifest = function(project) {
@@ -393,7 +394,7 @@
       };
       write("README.md", genReadme(project));
       write("package.json", JSON.stringify(project["package"], null, 4));
-      updateGitIgnore(project, write);
+      updateGitIgnore(project, next());
       write(".travis.yml", "language: node_js\nnode_js:\n  - 0.10");
       if (project["package"].html5) {
         write("manifest.appcache", genCacheManifest(project));

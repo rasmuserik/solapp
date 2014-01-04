@@ -389,7 +389,7 @@ if isNodeJs
     return result
 
   #{{{3 updateGitIgnore - update .gitignore
-  updateGitIgnore = (project, write) ->
+  updateGitIgnore = (project, done) ->
     fs.readFile "#{project.dirname}/.gitignore", "utf8", (err, data) ->
       data = "" if err
       data = data.split("\n")
@@ -398,7 +398,8 @@ if isNodeJs
         result[line] = true
       result["node_modules"] = true
       result["*.swp"] = true
-      write ".gitignore", (Object.keys result).join("\n")
+      console.log "writing .gitignore"
+      fs.writeFile ".gitignore", (Object.keys result).join("\n") + "\n", done
 
   #{{{3 genCacheManifest
   genCacheManifest = (project) -> """
@@ -443,7 +444,7 @@ if isNodeJs
 
     write "README.md", genReadme project
     write "package.json", JSON.stringify(project.package, null, 4)
-    updateGitIgnore project, write
+    updateGitIgnore project, next()
     write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
     write "manifest.appcache", genCacheManifest project if project.package.html5
     write "#{project.name}.js", compile project if project.package.npmjs
