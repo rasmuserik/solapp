@@ -119,8 +119,11 @@
 #   - only increment version on publish
 #     - have date/time instead of version in manifest
 #   - basic publish command with git-tag
+#   - generate table-of-contents in readme
 # - later
+#   - url in exports.about creates link from title in readme
 #   - generate index.html
+#   - automatic creation of gh-pages branch with publication of index.html
 #   - config.xml
 #   - publish command
 #   - `create` - and disable autocreation in current dir
