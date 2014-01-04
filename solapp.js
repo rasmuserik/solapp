@@ -1,5 +1,5 @@
 (function() {
-  var build, compile, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genCacheManifest, genReadme, htmlHead, loadProject, solapp, updateGitIgnore, webjs,
+  var build, commit, compile, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genCacheManifest, genReadme, htmlHead, loadProject, solapp, updateGitIgnore, webjs,
     __slice = [].slice;
 
   if (typeof isNodeJs !== "boolean") {
@@ -188,6 +188,30 @@
 
   if (isNodeJs) {
     fs = require("fs");
+    loadProject = function(dirname, done) {
+      var e, name, pkg, project;
+      try {
+        pkg = fs.readFileSync(dirname + "/package.json", "utf8");
+      } catch (_error) {
+        e = _error;
+        pkg = "{}";
+      }
+      pkg = JSON.parse(pkg);
+      name = pkg.name || dirname.split("/").slice(-1)[0];
+      project = {
+        dirname: dirname,
+        name: name,
+        "package": pkg
+      };
+      ensureCoffeeSource(project);
+      project.source = fs.readFileSync("" + dirname + "/" + project.name + ".coffee", "utf8");
+      return ensureSolAppInstalled(function() {
+        require("coffee-script");
+        project.module = require("" + dirname + "/" + project.name + ".coffee");
+        expandPackage(project);
+        return done(project);
+      });
+    };
     ensureSolAppInstalled = function(done) {
       if (fs.existsSync("" + (process.cwd()) + "/node_modules/solapp")) {
         return done();
@@ -250,29 +274,28 @@
         url: "http://github.com/" + pkg.owner + "/" + pkg.name + ".git"
       };
     };
-    loadProject = function(dirname, done) {
-      var e, name, pkg, project;
-      try {
-        pkg = fs.readFileSync(dirname + "/package.json", "utf8");
-      } catch (_error) {
-        e = _error;
-        pkg = "{}";
-      }
-      pkg = JSON.parse(pkg);
-      name = pkg.name || dirname.split("/").slice(-1)[0];
-      project = {
-        dirname: dirname,
-        name: name,
-        "package": pkg
-      };
-      ensureCoffeeSource(project);
-      project.source = fs.readFileSync("" + dirname + "/" + project.name + ".coffee", "utf8");
-      return ensureSolAppInstalled(function() {
-        require("coffee-script");
-        project.module = require("" + dirname + "/" + project.name + ".coffee");
-        expandPackage(project);
-        return done(project);
+    build = function(project, done) {
+      var next, write;
+      next = solapp.whenDone(function() {
+        return ensureGit(project, done);
       });
+      write = function(name, content) {
+        console.log("writing " + name);
+        return fs.writeFile("" + project.dirname + "/" + name, content + "\n", next());
+      };
+      write("README.md", genReadme(project));
+      write("package.json", JSON.stringify(project["package"], null, 4));
+      updateGitIgnore(project, next());
+      write(".travis.yml", "language: node_js\nnode_js:\n  - 0.10");
+      if (project["package"].html5) {
+        write("manifest.appcache", genCacheManifest(project));
+      }
+      if (project["package"].npmjs) {
+        write("" + project.name + ".js", compile(project));
+      }
+      if (project["package"].webjs) {
+        return write("" + project.name + ".min.js", webjs(project));
+      }
     };
     ensureGit = function(project, done) {
       if (fs.existsSync("" + project.dirname + "/.git")) {
@@ -382,29 +405,6 @@
         ascii_only: true,
         inline_script: true
       });
-    };
-    build = function(project, done) {
-      var next, write;
-      next = solapp.whenDone(function() {
-        return ensureGit(project, done);
-      });
-      write = function(name, content) {
-        console.log("writing " + name);
-        return fs.writeFile("" + project.dirname + "/" + name, content + "\n", next());
-      };
-      write("README.md", genReadme(project));
-      write("package.json", JSON.stringify(project["package"], null, 4));
-      updateGitIgnore(project, next());
-      write(".travis.yml", "language: node_js\nnode_js:\n  - 0.10");
-      if (project["package"].html5) {
-        write("manifest.appcache", genCacheManifest(project));
-      }
-      if (project["package"].npmjs) {
-        write("" + project.name + ".js", compile(project));
-      }
-      if (project["package"].webjs) {
-        return write("" + project.name + ".min.js", webjs(project));
-      }
     };
     devserverJsonml = function(project) {
       return [
@@ -564,31 +564,33 @@
   }
 
   if (isNodeJs) {
-    (function() {
-      var commit;
-      commit = function(opt) {
-        var msg, project, version;
-        project = opt.project;
-        msg = opt.args.join(" ").replace(/"/g, "\\\"");
-        version = (project["package"].version || "0.0.1").split(".");
-        version[2] = +version[2] + 1;
-        project["package"].version = version.join(".");
-        return build(project, function() {
-          var command;
-          command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
-          if (project["package"].npmjs) {
-            command += " && npm publish";
+    commit = function(opt) {
+      var msg, project, version;
+      project = opt.project;
+      msg = opt.args.join(" ").replace(/"/g, "\\\"");
+      version = (project["package"].version || "0.0.1").split(".");
+      version[2] = +version[2] + 1;
+      project["package"].version = version.join(".");
+      return build(project, function() {
+        var command;
+        command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
+        if (project["package"].npmjs) {
+          command += " && npm publish";
+        }
+        console.log("running:\n" + command);
+        return require("child_process").exec(command, function(err, stdout, stderr) {
+          console.log(stdout);
+          console.log(stderr);
+          if (err) {
+            throw err;
           }
-          console.log("running:\n" + command);
-          return require("child_process").exec(command, function(err, stdout, stderr) {
-            console.log(stdout);
-            console.log(stderr);
-            if (err) {
-              throw err;
-            }
-          });
         });
-      };
+      });
+    };
+  }
+
+  if (isNodeJs) {
+    (function() {
       if (require.main === module) {
         return solapp.nextTick(function() {
           return loadProject(process.cwd(), function(project) {

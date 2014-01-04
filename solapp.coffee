@@ -83,8 +83,8 @@
 #
 #{{{2 Versions
 #
-# - version 0.1
-# - development
+# - version 0.0
+#   - refactor/cleanup
 #   - minified js-library for web
 #   - `build` command
 #   - `test` command
@@ -104,12 +104,14 @@
 #   - compile to $APPNAME.js
 #   - isNodeJs - optional code - automatically removable for web environment
 #   - Automatically create .travis.yml
+# - development
 #
 #{{{2 Roadmap
 #
-# - 0.1 first working prototype
-#   - refactor/cleanup
-# - 0.2 real-world use within 360º, uccorg-backend and maybe more
+# - 0.1 first working prototype, running 360º and uccorg-backend etc.
+#   - make sure that html5-csses are include in devserver
+#   - add devserver-`solsort.com/_..`
+#   - userScaleable bug...
 #   - stuff needed for 360º
 #   - stuff needed for uccorg backend
 #   - autoreload devserver content on file change, restart/execute server
@@ -259,7 +261,30 @@ solapp.jsonml2html = (arr) ->
 #{{{1 SolApp tool
 if isNodeJs
   fs = require "fs"
-  #{{{2 load/sanitise project
+  #{{{2 load project, and create project.package etc.
+  #{{{3 loadProject - create module-global project-var
+  loadProject = (dirname, done) ->
+    try
+      pkg = fs.readFileSync dirname + "/package.json", "utf8"
+    catch e
+      pkg = "{}"
+    pkg = JSON.parse pkg
+
+    name = pkg.name || dirname.split("/").slice(-1)[0]
+    project =
+      dirname: dirname
+      name: name
+      package: pkg
+
+    ensureCoffeeSource project
+    project.source = fs.readFileSync "#{dirname}/#{project.name}.coffee", "utf8"
+
+    ensureSolAppInstalled ->
+      require "coffee-script"
+      project.module = require("#{dirname}/#{project.name}.coffee")
+      expandPackage project
+      done project
+
   #{{{3 ensureSolAppInstalled
   #
   # TODO: probably remove this one, when solapp-object is passed to main
@@ -320,30 +345,22 @@ if isNodeJs
       type: "git"
       url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
 
-  #{{{3 loadProject - create module-global project-var
-  loadProject = (dirname, done) ->
-    try
-      pkg = fs.readFileSync dirname + "/package.json", "utf8"
-    catch e
-      pkg = "{}"
-    pkg = JSON.parse pkg
-
-    name = pkg.name || dirname.split("/").slice(-1)[0]
-    project =
-      dirname: dirname
-      name: name
-      package: pkg
-
-    ensureCoffeeSource project
-    project.source = fs.readFileSync "#{dirname}/#{project.name}.coffee", "utf8"
-
-    ensureSolAppInstalled ->
-      require "coffee-script"
-      project.module = require("#{dirname}/#{project.name}.coffee")
-      expandPackage project
-      done project
-
   #{{{2 build
+  #{{{3 build - Actual build function
+  build = (project, done) ->
+    next = solapp.whenDone -> ensureGit project, done
+    write = (name, content) ->
+      console.log "writing #{name}"
+      fs.writeFile "#{project.dirname}/#{name}", content + "\n", next()
+
+    write "README.md", genReadme project
+    write "package.json", JSON.stringify(project.package, null, 4)
+    updateGitIgnore project, next()
+    write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
+    write "manifest.appcache", genCacheManifest project if project.package.html5
+    write "#{project.name}.js", compile project if project.package.npmjs
+    write "#{project.name}.min.js", webjs project if project.package.webjs
+
   #{{{3 ensureGit
   ensureGit = (project, done) ->
     return done?() if fs.existsSync "#{project.dirname}/.git"
@@ -435,21 +452,6 @@ if isNodeJs
     ast.mangle_names()
     project.webjs = ast.print_to_string({ascii_only:true,inline_script:true})
 
-  #{{{3 build - Actual build function
-  build = (project, done) ->
-    next = solapp.whenDone -> ensureGit project, done
-    write = (name, content) ->
-      console.log "writing #{name}"
-      fs.writeFile "#{project.dirname}/#{name}", content + "\n", next()
-
-    write "README.md", genReadme project
-    write "package.json", JSON.stringify(project.package, null, 4)
-    updateGitIgnore project, next()
-    write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
-    write "manifest.appcache", genCacheManifest project if project.package.html5
-    write "#{project.name}.js", compile project if project.package.npmjs
-    write "#{project.name}.min.js", webjs project if project.package.webjs
-
   #{{{2 devserver
   #{{{3 devserverJsonml - create the html jsonml-object for the dev-server
   devserverJsonml = (project) ->
@@ -520,9 +522,8 @@ if isDevServer
     else
       exports.main solapp.extend {}, solapp, opt
 
-#{{{2 SolApp dispatch
-if isNodeJs then do ->
-  #{{{3 commit
+  #{{{2 commit
+if isNodeJs
   commit = (opt) ->
     project = opt.project
     msg = opt.args.join(" ").replace(/"/g, "\\\"")
@@ -541,6 +542,8 @@ if isNodeJs then do ->
         console.log stderr
         throw err if err
 
+#{{{2 SolApp dispatch
+if isNodeJs then do ->
   #{{{3 main dispatch
   if require.main == module then solapp.nextTick ->
     loadProject process.cwd(), (project) ->

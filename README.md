@@ -87,8 +87,8 @@ any additional properties will also be passed on into `package.json`
 
 ## Versions
 
-- version 0.1
-- development
+- version 0.0
+  - refactor/cleanup
   - minified js-library for web
   - `build` command
   - `test` command
@@ -108,12 +108,14 @@ any additional properties will also be passed on into `package.json`
   - compile to $APPNAME.js
   - isNodeJs - optional code - automatically removable for web environment
   - Automatically create .travis.yml
+- development
 
 ## Roadmap
 
-- 0.1 first working prototype
-  - refactor/cleanup
-- 0.2 real-world use within 360º, uccorg-backend and maybe more
+- 0.1 first working prototype, running 360º and uccorg-backend etc.
+  - make sure that html5-csses are include in devserver
+  - add devserver-`solsort.com/_..`
+  - userScaleable bug...
   - stuff needed for 360º
   - stuff needed for uccorg backend
   - autoreload devserver content on file change, restart/execute server
@@ -303,7 +305,32 @@ add children and endtag, if there are children. `<foo></foo>` is done with `["fo
     if isNodeJs
       fs = require "fs"
 
-## load/sanitise project
+## load project, and create project.package etc.
+### loadProject - create module-global project-var
+
+      loadProject = (dirname, done) ->
+        try
+          pkg = fs.readFileSync dirname + "/package.json", "utf8"
+        catch e
+          pkg = "{}"
+        pkg = JSON.parse pkg
+    
+        name = pkg.name || dirname.split("/").slice(-1)[0]
+        project =
+          dirname: dirname
+          name: name
+          package: pkg
+    
+        ensureCoffeeSource project
+        project.source = fs.readFileSync "#{dirname}/#{project.name}.coffee", "utf8"
+    
+        ensureSolAppInstalled ->
+          require "coffee-script"
+          project.module = require("#{dirname}/#{project.name}.coffee")
+          expandPackage project
+          done project
+    
+
 ### ensureSolAppInstalled
 
 TODO: probably remove this one, when solapp-object is passed to main
@@ -368,32 +395,24 @@ TODO: probably remove this one, when solapp-object is passed to main
           url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
     
 
-### loadProject - create module-global project-var
-
-      loadProject = (dirname, done) ->
-        try
-          pkg = fs.readFileSync dirname + "/package.json", "utf8"
-        catch e
-          pkg = "{}"
-        pkg = JSON.parse pkg
-    
-        name = pkg.name || dirname.split("/").slice(-1)[0]
-        project =
-          dirname: dirname
-          name: name
-          package: pkg
-    
-        ensureCoffeeSource project
-        project.source = fs.readFileSync "#{dirname}/#{project.name}.coffee", "utf8"
-    
-        ensureSolAppInstalled ->
-          require "coffee-script"
-          project.module = require("#{dirname}/#{project.name}.coffee")
-          expandPackage project
-          done project
-    
-
 ## build
+### build - Actual build function
+
+      build = (project, done) ->
+        next = solapp.whenDone -> ensureGit project, done
+        write = (name, content) ->
+          console.log "writing #{name}"
+          fs.writeFile "#{project.dirname}/#{name}", content + "\n", next()
+    
+        write "README.md", genReadme project
+        write "package.json", JSON.stringify(project.package, null, 4)
+        updateGitIgnore project, next()
+        write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
+        write "manifest.appcache", genCacheManifest project if project.package.html5
+        write "#{project.name}.js", compile project if project.package.npmjs
+        write "#{project.name}.min.js", webjs project if project.package.webjs
+    
+
 ### ensureGit
 
       ensureGit = (project, done) ->
@@ -497,23 +516,6 @@ TODO: probably remove this one, when solapp-object is passed to main
         project.webjs = ast.print_to_string({ascii_only:true,inline_script:true})
     
 
-### build - Actual build function
-
-      build = (project, done) ->
-        next = solapp.whenDone -> ensureGit project, done
-        write = (name, content) ->
-          console.log "writing #{name}"
-          fs.writeFile "#{project.dirname}/#{name}", content + "\n", next()
-    
-        write "README.md", genReadme project
-        write "package.json", JSON.stringify(project.package, null, 4)
-        updateGitIgnore project, next()
-        write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
-        write "manifest.appcache", genCacheManifest project if project.package.html5
-        write "#{project.name}.js", compile project if project.package.npmjs
-        write "#{project.name}.min.js", webjs project if project.package.webjs
-    
-
 ## devserver
 ### devserverJsonml - create the html jsonml-object for the dev-server
 
@@ -594,12 +596,9 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
           exports.main solapp.extend {}, solapp, opt
     
 
-## SolApp dispatch
+## commit
 
-    if isNodeJs then do ->
-
-### commit
-
+    if isNodeJs
       commit = (opt) ->
         project = opt.project
         msg = opt.args.join(" ").replace(/"/g, "\\\"")
@@ -618,6 +617,10 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
             console.log stderr
             throw err if err
     
+
+## SolApp dispatch
+
+    if isNodeJs then do ->
 
 ### main dispatch
 
