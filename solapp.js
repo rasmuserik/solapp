@@ -1,5 +1,5 @@
 (function() {
-  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, runTests, solapp, updateGitIgnore,
+  var build, coffeesource, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genReadme, htmlHead, loadProject, project, solapp, updateGitIgnore,
     __slice = [].slice;
 
   exports.about = {
@@ -19,7 +19,8 @@
     keywords: ["framework", "html5", "phonegap"],
     bin: {
       solapp: "./solapp.coffee"
-    }
+    },
+    webjs: true
   };
 
   solapp = exports;
@@ -32,18 +33,15 @@
     }
   };
 
-  runTests = void 0;
-
-  exports.globalDefines = function(global) {
-    var _ref;
-    if (typeof isNodeJs !== "boolean") {
+  if (typeof isNodeJs !== "boolean") {
+    exports.globalDefines = function(global) {
+      var _ref;
       global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
       global.isDevServer = typeof isDevServer !== "undefined" && isDevServer;
       return global.isTesting = solapp.getArgs()[0] === "test";
-    }
-  };
-
-  exports.globalDefines(global);
+    };
+    exports.globalDefines(global);
+  }
 
   if (isNodeJs) {
     coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js";
@@ -364,11 +362,13 @@
         return done(project);
       });
     };
-    build = function(done) {
-      var next, travis, version, _ref;
+    build = function(project, done) {
+      var ast, compressor, jssource, next, travis, uglify, version, webjs, _ref;
       next = solapp.whenDone(function() {
         return ensureGit(done);
       });
+      console.log("writing README.md");
+      fs.writeFile("" + project.dirname + "/README.md", genReadme(project), next());
       console.log("writing package.json");
       version = project["package"].version.split(".");
       version[2] = +version[2] + 1;
@@ -381,10 +381,43 @@
       fs.writeFile("" + project.dirname + "/.travis.yml", travis, next());
       console.log("writing manifest.appcache");
       fs.writeFile("" + project.dirname + "/manifest.appcache", "CACHE MANIFEST\n# " + project["package"].name + " " + project["package"].version + "\nCACHE\nindex.html\n\n" + ((((_ref = project["package"].html5) != null ? _ref.files : void 0) || []).join("\n")) + "\n\n" + (fs.existsSync("" + project.dirname + "/icon.png") ? "icon.png" : "") + "\nNETWORK\n*\nhttp://*\nhttps://*\n", next());
-      console.log("writing README.md");
-      fs.writeFile("" + project.dirname + "/README.md", genReadme(project), next());
-      console.log("writing " + project.name + ".js");
-      return fs.writeFile("" + project.name + ".js", require("coffee-script").compile(project.source), next());
+      jssource = void 0;
+      if (project["package"].npmjs) {
+        console.log("writing " + project.name + ".js");
+        if (jssource == null) {
+          jssource = require("coffee-script").compile(project.source);
+        }
+        fs.writeFile("" + project.name + ".js", jssource, next());
+      }
+      if (project["package"].webjs || project["package"].html5) {
+        console.log("minifying javascript");
+        if (jssource == null) {
+          jssource = require("coffee-script").compile(project.source);
+        }
+        uglify = require("uglify-js");
+        ast = uglify.parse(jssource.replace("{", "{var exports=window." + project.name + "={};"));
+        ast.figure_out_scope();
+        compressor = uglify.Compressor({
+          warnings: false,
+          global_defs: {
+            isNodeJs: false,
+            isDevServer: false,
+            isTesting: false
+          }
+        });
+        ast = ast.transform(compressor);
+        ast.figure_out_scope();
+        ast.compute_char_frequency();
+        ast.mangle_names();
+        webjs = ast.print_to_string({
+          ascii_only: true,
+          inline_script: true
+        });
+        if (project["package"].webjs) {
+          console.log("writing " + project.name + ".min.js");
+          return fs.writeFile("" + project.name + ".min.js", webjs, next());
+        }
+      }
     };
     devserverJsonml = function(project) {
       return [
@@ -548,11 +581,11 @@
 
   if (isNodeJs) {
     (function() {
-      var commit, dist;
+      var commit;
       commit = function(opt) {
         var msg;
         msg = opt.args.join(" ").replace(/"/g, "\\\"");
-        return build(function() {
+        return build(opt.project, function() {
           var command;
           command = "npm test && git commit -am \"" + msg + "\" && git pull && git push";
           if (project["package"].npmjs) {
@@ -568,27 +601,24 @@
           });
         });
       };
-      dist = function(opt) {
-        return build();
-      };
       if (require.main === module) {
         return solapp.nextTick(function() {
           return loadProject(process.cwd(), function() {
             var command, commands, fn;
             commands = {
               start: devserver,
-              test: function() {
-                return build(function() {
+              test: function(opt) {
+                return build(opt.project, function() {
                   var _base;
                   return typeof (_base = project.module).test === "function" ? _base.test({
-                    done: function() {
-                      return void 0;
-                    }
+                    done: opt.done
                   }) : void 0;
                 });
               },
               commit: commit,
-              build: build
+              build: function(opt) {
+                return build(opt.project, opt.done);
+              }
             };
             command = process.argv[2];
             fn = commands[process.argv[2]] || project.module.main;

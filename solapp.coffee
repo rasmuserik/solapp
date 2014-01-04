@@ -1,5 +1,4 @@
 #!/usr/bin/env coffee
-# Work in progress, not running yet
 #
 #{{{1 About
 #
@@ -86,6 +85,7 @@
 #
 # - version 0.1
 # - development
+#   - minified js-library for web
 #   - `build` command
 #   - `test` command
 #   - define global in devserver/web-client
@@ -109,7 +109,6 @@
 #
 # - 0.1 first working prototype
 #   - refactor/cleanup
-#   - minified js-library for web
 # - 0.2 real-world use within 360º, uccorg-backend and maybe more
 #   - stuff needed for 360º
 #   - stuff needed for uccorg backend
@@ -154,6 +153,7 @@ exports.about =
   npmjs: {}
   keywords: ["framework", "html5", "phonegap"]
   bin: {solapp: "./solapp.coffee"}
+  webjs: true
 
 
 #{{{1 General tools
@@ -161,13 +161,12 @@ solapp = exports
 solapp.getArgs = -> if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
 
 #{{{1 Environment
-runTests = undefined
-exports.globalDefines = (global) ->
-  if typeof isNodeJs != "boolean"
+if typeof isNodeJs != "boolean"
+  exports.globalDefines = (global) ->
     global.isNodeJs = if process?.versions?.node then true else false
     global.isDevServer = typeof isDevServer != "undefined" && isDevServer
     global.isTesting = solapp.getArgs()[0] == "test"
-exports.globalDefines global
+  exports.globalDefines global
 
 #{{{1 Initial stuff
 if isNodeJs
@@ -410,9 +409,13 @@ if isNodeJs
       done project
 
   #{{{2 build - Actual build function
-  build = (done) ->
+  build = (project, done) ->
     next = solapp.whenDone ->
       ensureGit done
+
+    #{{{3 README.md, package.json, .gitignore and .travis.yml
+    console.log "writing README.md"
+    fs.writeFile "#{project.dirname}/README.md", genReadme(project), next()
 
     console.log "writing package.json"
     version = project.package.version.split "."
@@ -427,6 +430,7 @@ if isNodeJs
     travis = "language: node_js\nnode_js:\n  - 0.10 \n"
     fs.writeFile "#{project.dirname}/.travis.yml", travis, next()
 
+    #{{{3 manifest.appcache - if html5 app
     console.log "writing manifest.appcache"
     fs.writeFile "#{project.dirname}/manifest.appcache", """
       CACHE MANIFEST\n# #{project.package.name} #{project.package.version}
@@ -441,11 +445,37 @@ if isNodeJs
 
     """, next()
 
-    console.log "writing README.md"
-    fs.writeFile "#{project.dirname}/README.md", genReadme(project), next()
+    #{{{3 $APPNAME.js for npm / node module
+    jssource = undefined
+    if project.package.npmjs
+      console.log "writing #{project.name}.js"
+      jssource ?= require("coffee-script").compile project.source
+      fs.writeFile "#{project.name}.js", jssource, next()
+  
+    #{{{3 $APPNAME.min.js for webjs or ... html5
+    if project.package.webjs or project.package.html5
+      console.log "minifying javascript"
+      jssource ?= require("coffee-script").compile project.source
 
-    console.log "writing #{project.name}.js"
-    fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), next()
+      uglify = require("uglify-js")
+      ast = uglify.parse jssource.replace "{", "{var exports=window.#{project.name}={};"
+      ast.figure_out_scope()
+      compressor = uglify.Compressor
+        warnings: false
+        global_defs:
+          isNodeJs: false
+          isDevServer: false
+          isTesting: false
+      ast = ast.transform compressor
+  
+      ast.figure_out_scope()
+      ast.compute_char_frequency()
+      ast.mangle_names()
+      webjs = ast.print_to_string({ascii_only:true,inline_script:true})
+
+      if project.package.webjs
+        console.log "writing #{project.name}.min.js"
+        fs.writeFile "#{project.name}.min.js", webjs, next()
 
   #{{{2 devserverJsonml - create the html jsonml-object for the dev-server
   devserverJsonml = (project) ->
@@ -523,7 +553,7 @@ if isNodeJs then do ->
   #{{{2 commit
   commit = (opt) ->
     msg = opt.args.join(" ").replace(/"/g, "\\\"")
-    build ->
+    build opt.project, ->
       command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
       if project.package.npmjs
         command += " && npm publish"
@@ -533,20 +563,16 @@ if isNodeJs then do ->
         console.log stderr
         throw err if err
 
-  #{{{2 dist
-  dist = (opt) ->
-    build()
-
   #{{{2 main dispatch
   if require.main == module then solapp.nextTick ->
     loadProject process.cwd(), ->
       commands =
         start: devserver
-        test: ->
-          build ->
-            project.module.test? {done: -> undefined}
+        test: (opt) ->
+          build opt.project, ->
+            project.module.test? {done: opt.done}
         commit: commit
-        build: build
+        build: (opt) -> build opt.project, opt.done
       command = process.argv[2]
       fn = commands[process.argv[2]] || project.module.main
       fn?(solapp.extend {}, solapp, {

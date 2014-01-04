@@ -3,7 +3,6 @@
 
 Framework for quickly creating apps
 
-Work in progress, not running yet
 
 # About
 
@@ -90,6 +89,7 @@ any additional properties will also be passed on into `package.json`
 
 - version 0.1
 - development
+  - minified js-library for web
   - `build` command
   - `test` command
   - define global in devserver/web-client
@@ -113,7 +113,6 @@ any additional properties will also be passed on into `package.json`
 
 - 0.1 first working prototype
   - refactor/cleanup
-  - minified js-library for web
 - 0.2 real-world use within 360º, uccorg-backend and maybe more
   - stuff needed for 360º
   - stuff needed for uccorg backend
@@ -123,8 +122,11 @@ any additional properties will also be passed on into `package.json`
   - only increment version on publish
     - have date/time instead of version in manifest
   - basic publish command with git-tag
+  - generate table-of-contents in readme
 - later
+  - url in exports.about creates link from title in readme
   - generate index.html
+  - automatic creation of gh-pages branch with publication of index.html
   - config.xml
   - publish command
   - `create` - and disable autocreation in current dir
@@ -156,6 +158,7 @@ any additional properties will also be passed on into `package.json`
       npmjs: {}
       keywords: ["framework", "html5", "phonegap"]
       bin: {solapp: "./solapp.coffee"}
+      webjs: true
     
     
 
@@ -167,13 +170,12 @@ any additional properties will also be passed on into `package.json`
 
 # Environment
 
-    runTests = undefined
-    exports.globalDefines = (global) ->
-      if typeof isNodeJs != "boolean"
+    if typeof isNodeJs != "boolean"
+      exports.globalDefines = (global) ->
         global.isNodeJs = if process?.versions?.node then true else false
         global.isDevServer = typeof isDevServer != "undefined" && isDevServer
         global.isTesting = solapp.getArgs()[0] == "test"
-    exports.globalDefines global
+      exports.globalDefines global
     
 
 # Initial stuff
@@ -464,9 +466,15 @@ TODO, maybe make this passed around as parameter
 
 ## build - Actual build function
 
-      build = (done) ->
+      build = (project, done) ->
         next = solapp.whenDone ->
           ensureGit done
+    
+
+### README.md, package.json, .gitignore and .travis.yml
+
+        console.log "writing README.md"
+        fs.writeFile "#{project.dirname}/README.md", genReadme(project), next()
     
         console.log "writing package.json"
         version = project.package.version.split "."
@@ -481,6 +489,9 @@ TODO, maybe make this passed around as parameter
         travis = "language: node_js\nnode_js:\n  - 0.10 \n"
         fs.writeFile "#{project.dirname}/.travis.yml", travis, next()
     
+
+### manifest.appcache - if html5 app
+
         console.log "writing manifest.appcache"
         fs.writeFile "#{project.dirname}/manifest.appcache", """
           CACHE MANIFEST\n# #{project.package.name} #{project.package.version}
@@ -495,11 +506,41 @@ TODO, maybe make this passed around as parameter
     
         """, next()
     
-        console.log "writing README.md"
-        fs.writeFile "#{project.dirname}/README.md", genReadme(project), next()
+
+### $APPNAME.js for npm / node module
+
+        jssource = undefined
+        if project.package.npmjs
+          console.log "writing #{project.name}.js"
+          jssource ?= require("coffee-script").compile project.source
+          fs.writeFile "#{project.name}.js", jssource, next()
+      
+
+### $APPNAME.min.js for webjs or ... html5
+
+        if project.package.webjs or project.package.html5
+          console.log "minifying javascript"
+          jssource ?= require("coffee-script").compile project.source
     
-        console.log "writing #{project.name}.js"
-        fs.writeFile "#{project.name}.js", require("coffee-script").compile(project.source), next()
+          uglify = require("uglify-js")
+          ast = uglify.parse jssource.replace "{", "{var exports=window.#{project.name}={};"
+          ast.figure_out_scope()
+          compressor = uglify.Compressor
+            warnings: false
+            global_defs:
+              isNodeJs: false
+              isDevServer: false
+              isTesting: false
+          ast = ast.transform compressor
+      
+          ast.figure_out_scope()
+          ast.compute_char_frequency()
+          ast.mangle_names()
+          webjs = ast.print_to_string({ascii_only:true,inline_script:true})
+    
+          if project.package.webjs
+            console.log "writing #{project.name}.min.js"
+            fs.writeFile "#{project.name}.min.js", webjs, next()
     
 
 ## devserverJsonml - create the html jsonml-object for the dev-server
@@ -593,7 +634,7 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
 
       commit = (opt) ->
         msg = opt.args.join(" ").replace(/"/g, "\\\"")
-        build ->
+        build opt.project, ->
           command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
           if project.package.npmjs
             command += " && npm publish"
@@ -604,23 +645,17 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
             throw err if err
     
 
-## dist
-
-      dist = (opt) ->
-        build()
-    
-
 ## main dispatch
 
       if require.main == module then solapp.nextTick ->
         loadProject process.cwd(), ->
           commands =
             start: devserver
-            test: ->
-              build ->
-                project.module.test? {done: -> undefined}
+            test: (opt) ->
+              build opt.project, ->
+                project.module.test? {done: opt.done}
             commit: commit
-            build: build
+            build: (opt) -> build opt.project, opt.done
           command = process.argv[2]
           fn = commands[process.argv[2]] || project.module.main
           fn?(solapp.extend {}, solapp, {
