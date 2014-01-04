@@ -1,8 +1,13 @@
 {
     "name": "solapp",
-    "version": "0.0.33",
+    "version": "0.0.9",
     "title": "SolApp",
     "description": "Framework for quickly creating apps",
+    "keywords": [
+        "framework",
+        "html5",
+        "phonegap"
+    ],
     "dependencies": {
         "async": "*",
         "coffee-script": "*",
@@ -13,16 +18,11 @@
         "socket.io-client": "*",
         "uglify-js": "*"
     },
-    "npmjs": {},
-    "keywords": [
-        "framework",
-        "html5",
-        "phonegap"
-    ],
+    "npmjs": true,
+    "webjs": true,
     "bin": {
         "solapp": "./solapp.coffee"
     },
-    "webjs": true,
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
     "owner": "rasmuserik",
     "main": "solapp.js",

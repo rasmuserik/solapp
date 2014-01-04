@@ -141,52 +141,54 @@ any additional properties will also be passed on into `package.json`
   - infer dependencies from `require`-analysis of compiled coffeescript
   - automatic screenshot via phantomjs
 
-# Meta information
-
-    exports.about =
-      title: "SolApp"
-      description: "Framework for quickly creating apps"
-      dependencies:
-        async: "*"
-        "coffee-script": "*"
-        express: "3.x"
-        glob: "*"
-        request: "*"
-        "socket.io": "*"
-        "socket.io-client": "*"
-        "uglify-js": "*"
-      npmjs: {}
-      keywords: ["framework", "html5", "phonegap"]
-      bin: {solapp: "./solapp.coffee"}
-      webjs: true
-    
-    
-
-# General tools
-
-    solapp = exports
-    solapp.getArgs = -> if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
-    
-
 # Environment
+
+Information about current environment, ie. - are we running on nodejs, web, running tests, etc.
+
+These are global properties, to be able to use uglify to remove them when preprocessing, ie. `if(isTesting) { ... }` will be fully removed in minified non-test builds...
+
 
     if typeof isNodeJs != "boolean"
       exports.globalDefines = (global) ->
         global.isNodeJs = if process?.versions?.node then true else false
         global.isDevServer = typeof isDevServer != "undefined" && isDevServer
-        global.isTesting = solapp.getArgs()[0] == "test"
+        global.isTesting = if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
       exports.globalDefines global
     
 
-# Initial stuff
+# Meta information
 
     if isNodeJs
-      coffeesource = "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"
-      fs = require "fs"
-      require "coffee-script"
+      exports.about =
+        title: "SolApp"
+        description: "Framework for quickly creating apps"
+        keywords: ["framework", "html5", "phonegap"]
+        dependencies:
+          async: "*"
+          "coffee-script": "*"
+          express: "3.x"
+          glob: "*"
+          request: "*"
+          "socket.io": "*"
+          "socket.io-client": "*"
+          "uglify-js": "*"
+        npmjs: true
+        webjs: true
+    
+
+Passed on into package.json, to allow installing solapp binary with `npm install`
+
+        bin: {solapp: "./solapp.coffee"}
     
 
 # Utility functions
+
+    solapp = exports
+
+## getArgs
+
+    solapp.getArgs = -> if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
+
 ## sleep
 
     solapp.sleep = (t,fn) -> setTimeout fn, t * 1000
@@ -296,29 +298,15 @@ add children and endtag, if there are children. `<foo></foo>` is done with `["fo
       return result
     
 
-## readFileSync
-
-TODO: probably remove
-
-abstracted to return empty string on non-existant file, and add the ability to implement on other platforms than node
+# SolApp tool
+## SolApp app build/creation
 
     if isNodeJs
-      solapp.readFileSync =
-        (filename) ->
-          try
-            return fs.readFileSync filename, "utf8"
-          catch e
-            console.log "Warning, couldn't read \"#{filename}\":\n#{e}"
-            return ""
-    
+      fs = require "fs"
 
-# SolApp app build/creation
+### expandPackage - create package.json content, and increment minor version
 
-    if isNodeJs
-
-## expandPackage - create package.json content, and increment minor version
-
-      expandPackage = () ->
+      expandPackage = (project) ->
         version = (project.package.version || "0.0.1").split "."
         version[2] = +version[2] + 1
         pkg = project.package =
@@ -340,7 +328,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
           url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
     
 
-## genReadme - create README.md
+### genReadme - create README.md
 
       genReadme = (project) ->
         source = project.source
@@ -376,9 +364,9 @@ abstracted to return empty string on non-existant file, and add the ability to i
         return result
     
 
-## updateGitIgnore - update .gitignore
+### updateGitIgnore - update .gitignore
 
-      updateGitIgnore = (done) ->
+      updateGitIgnore = (project, done) ->
         fs.readFile "#{project.dirname}/.gitignore", "utf8", (err, data) ->
           data = "" if err
           data = data.split("\n")
@@ -390,28 +378,29 @@ abstracted to return empty string on non-existant file, and add the ability to i
           fs.writeFile "#{project.dirname}/.gitignore", (Object.keys result).join("\n")+"\n", done
     
 
-## ensureCoffeeSource
+### ensureCoffeeSource
 
-      ensureCoffeeSource = ->
+      ensureCoffeeSource = (project) ->
         if !fs.existsSync "#{project.dirname}/#{project.name}.coffee"
           console.log "writing #{project.name}.coffee"
           fs.writeFileSync "#{project.dirname}/#{project.name}.coffee", """
-            exports.about =
-              title: "#{project.name}"
-              description: "..."
-              html5:
-                css: [
-                  "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"
-                  "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
-                ]
-                js: [
-                  "//code.jquery.com/jquery-1.10.2.min.js"
-                  "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
-                ]
-                files: [
-                ]
-              dependencies:
-                solapp: "*"
+            if isNodeJs 
+              exports.about =
+                title: "#{project.name}"
+                description: "..."
+                html5:
+                  css: [
+                    "//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"
+                    "//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"
+                  ]
+                  js: [
+                    "//code.jquery.com/jquery-1.10.2.min.js"
+                    "//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"
+                  ]
+                  files: [
+                  ]
+                dependencies:
+                  solapp: "*"
             \n##{"{"}{{1 Main
             exports.main = (opt) ->
               opt.setStyle {h1: {backgroundColor: "green"}}
@@ -420,7 +409,7 @@ abstracted to return empty string on non-existant file, and add the ability to i
     
             """
 
-## ensureSolAppInstalled
+### ensureSolAppInstalled
 
 TODO: probably remove this one, when solapp-object is passed to main
 
@@ -432,9 +421,9 @@ TODO: probably remove this one, when solapp-object is passed to main
           done()
     
 
-## ensureGit
+### ensureGit
 
-      ensureGit = (done) ->
+      ensureGit = (project, done) ->
         return done?() if fs.existsSync "#{project.dirname}/.git"
         console.log "creating git repository..."
         require("child_process").exec "git init && git add . && git commit -am \"initial commit\"", (err, stdout, stderr) ->
@@ -444,34 +433,38 @@ TODO: probably remove this one, when solapp-object is passed to main
           done?()
     
 
-## loadProject - create module-global project-var
+### loadProject - create module-global project-var
 
 TODO, maybe make this passed around as parameter
 
-      project = undefined
       loadProject = (dirname, done) ->
         ensureSolAppInstalled ->
-          pkg = JSON.parse (solapp.readFileSync dirname + "/package.json") || "{}"
+          try
+            pkg = fs.readFileSync dirname + "/package.json", "utf8"
+          catch e
+            pkg = "{}"
+          pkg = JSON.parse pkg
           name = pkg.name || dirname.split("/").slice(-1)[0]
           project =
             dirname: dirname
             name: name
             package: pkg
-          ensureCoffeeSource()
-          project.source = solapp.readFileSync "#{dirname}/#{project.name}.coffee"
+          ensureCoffeeSource project
+          project.source = fs.readFileSync "#{dirname}/#{project.name}.coffee", "utf8"
+          require "coffee-script"
           project.module = require("#{dirname}/#{project.name}.coffee")
-          expandPackage()
+          expandPackage project
           done project
     
 
-## build - Actual build function
+### build - Actual build function
 
       build = (project, done) ->
         next = solapp.whenDone ->
-          ensureGit done
+          ensureGit project, done
     
 
-### README.md, package.json, .gitignore and .travis.yml
+#### README.md, package.json, .gitignore and .travis.yml
 
         console.log "writing README.md"
         fs.writeFile "#{project.dirname}/README.md", genReadme(project), next()
@@ -483,14 +476,14 @@ TODO, maybe make this passed around as parameter
         fs.writeFile "#{project.dirname}/package.json", "#{JSON.stringify project.package, null, 4}\n", next()
     
         console.log "writing .gitignore"
-        updateGitIgnore next()
+        updateGitIgnore project, next()
     
         console.log "writing .travis.yml"
         travis = "language: node_js\nnode_js:\n  - 0.10 \n"
         fs.writeFile "#{project.dirname}/.travis.yml", travis, next()
     
 
-### manifest.appcache - if html5 app
+#### manifest.appcache - if html5 app
 
         console.log "writing manifest.appcache"
         fs.writeFile "#{project.dirname}/manifest.appcache", """
@@ -507,7 +500,7 @@ TODO, maybe make this passed around as parameter
         """, next()
     
 
-### $APPNAME.js for npm / node module
+#### $APPNAME.js for npm / node module
 
         jssource = undefined
         if project.package.npmjs
@@ -516,14 +509,14 @@ TODO, maybe make this passed around as parameter
           fs.writeFile "#{project.name}.js", jssource, next()
       
 
-### $APPNAME.min.js for webjs or ... html5
+#### $APPNAME.min.js for webjs or ... html5
 
         if project.package.webjs or project.package.html5
           console.log "minifying javascript"
           jssource ?= require("coffee-script").compile project.source
     
           uglify = require("uglify-js")
-          ast = uglify.parse jssource.replace "{", "{var exports=window.#{project.name}={};"
+          ast = uglify.parse jssource.replace "{", "{var exports=window[\"#{project.name}\"]={};"
           ast.figure_out_scope()
           compressor = uglify.Compressor
             warnings: false
@@ -543,7 +536,7 @@ TODO, maybe make this passed around as parameter
             fs.writeFile "#{project.name}.min.js", webjs, next()
     
 
-## devserverJsonml - create the html jsonml-object for the dev-server
+### devserverJsonml - create the html jsonml-object for the dev-server
 
       devserverJsonml = (project) ->
         ["html", {manifest: "manifest.appcache"},
@@ -560,11 +553,11 @@ TODO, maybe make this passed around as parameter
         ]
     
 
-# devserver
+## devserver
 
     if isNodeJs
 
-## htmlHead
+### htmlHead
 
       htmlHead = (project) ->
         head = [
@@ -579,7 +572,7 @@ TODO, maybe make this passed around as parameter
         head.push ["meta", {name: "viewport", content: str}]
         return head
 
-## devserver
+### devserver
 
       devserver = (opt) ->
     
@@ -588,7 +581,7 @@ TODO, maybe make this passed around as parameter
         app.all "/", (req, res) ->
           res.end "<!DOCTYPE html>" + solapp.jsonml2html ["html"
             ["head"].concat htmlHead(opt.project).concat [
-              ["script", {src: coffeesource}, ""]
+              ["script", {src: "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"}, ""]
               ["style#solappStyle", ""]]
             ["body"
               ["div#solappContent", ""]
@@ -602,7 +595,7 @@ TODO, maybe make this passed around as parameter
         console.log "started devserver on port 8080"
     
 
-## Code running in browser
+### Code running in browser
 
     if isDevServer
       window.require = (module) -> if module == "solapp" then return solapp else throw "not implemented"
@@ -626,17 +619,17 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
           exports.main solapp.extend {}, solapp, opt
     
 
-# SolApp dispatch
+## SolApp dispatch
 
     if isNodeJs then do ->
 
-## commit
+### commit
 
       commit = (opt) ->
         msg = opt.args.join(" ").replace(/"/g, "\\\"")
         build opt.project, ->
           command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
-          if project.package.npmjs
+          if opt.project.package.npmjs
             command += " && npm publish"
           console.log "running:\n#{command}"
           require("child_process").exec command, (err, stdout, stderr) ->
@@ -645,17 +638,17 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
             throw err if err
     
 
-## main dispatch
+### main dispatch
 
       if require.main == module then solapp.nextTick ->
-        loadProject process.cwd(), ->
+        loadProject process.cwd(), (project) ->
           commands =
             start: devserver
             test: (opt) ->
-              build opt.project, ->
+              build project, ->
                 project.module.test? {done: opt.done}
             commit: commit
-            build: (opt) -> build opt.project, opt.done
+            build: (opt) -> build project, opt.done
           command = process.argv[2]
           fn = commands[process.argv[2]] || project.module.main
           fn?(solapp.extend {}, solapp, {
@@ -666,6 +659,7 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
             setContent: -> undefined
             done: -> undefined
           })
+    
 
 # main
 
