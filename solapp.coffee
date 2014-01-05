@@ -121,6 +121,7 @@
 #     - have date/time instead of version in manifest
 #   - basic publish command with git-tag
 #   - generate table-of-contents in readme
+#   - split out into microlibraries, ie. `require("platformDefs").register global if typeof isNodeJs != "boolean"`, `jsonml2html`, `uutil`, ...
 # - later
 #   - url in exports.about creates link from title in readme
 #   - generate index.html
