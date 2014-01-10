@@ -237,8 +237,11 @@
         version: project["package"].version || "0.0.0"
       };
       solapp.extend(pkg, project.module.about || {});
+      if (pkg.fullname == null) {
+        pkg.fullname = pkg.title || pkg.name;
+      }
       if (pkg.title == null) {
-        pkg.title = pkg.name;
+        pkg.title = pkg.fullname;
       }
       if (pkg.author == null) {
         pkg.author = "Rasmus Erik Voel Jensen (solsort.com)";

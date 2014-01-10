@@ -81,6 +81,7 @@ any additional properties will also be passed on into `package.json`
   - devserver served html5 for development (not written to disk)
   - minified html5 with cache-manifest,add-to-home-screen,ie-pinned-site(msapplication-meta-tags) etc. (www, Firefox Marketplace, Google Chrome Web Store, Facebook App Center)
   - phonegap-build & cordova (Google Play, iOS App Store, Windows Phone Store, Ubuntu Software Center, Windows Store, Mac App Store, BlackBerry World, Amazon Appstore, Steam Greenlight)
+  - node-webkit
   - web-javascript (bower)
   - browser extension...
   - smarttv-apps...
@@ -125,6 +126,7 @@ any additional properties will also be passed on into `package.json`
     - have date/time instead of version in manifest
   - basic publish command with git-tag
   - generate table-of-contents in readme
+  - split out into microlibraries, ie. `require("platformDefs").register global if typeof isNodeJs != "boolean"`, `jsonml2html`, `uutil`, ...
 - later
   - url in exports.about creates link from title in readme
   - generate index.html
@@ -380,7 +382,8 @@ TODO: probably remove this one, when solapp-object is passed to main
           name: project.name
           version: project.package.version || "0.0.0"
         solapp.extend pkg, project.module.about || {}
-        pkg.title ?= pkg.name
+        pkg.fullname ?= pkg.title || pkg.name
+        pkg.title ?= pkg.fullname
         pkg.author ?= "Rasmus Erik Voel Jensen (solsort.com)"
         pkg.owner ?= "rasmuserik"
         pkg.main = pkg.name + ".js"

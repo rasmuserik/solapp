@@ -1,6 +1,6 @@
 {
     "name": "solapp",
-    "version": "0.0.12",
+    "version": "0.0.13",
     "title": "SolApp",
     "description": "Framework for quickly creating apps",
     "keywords": [
@@ -23,6 +23,7 @@
     "bin": {
         "solapp": "./solapp.coffee"
     },
+    "fullname": "SolApp",
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
     "owner": "rasmuserik",
     "main": "solapp.js",
