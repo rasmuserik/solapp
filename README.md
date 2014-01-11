@@ -145,14 +145,12 @@ any additional properties will also be passed on into `package.json`
   - infer dependencies from `require`-analysis of compiled coffeescript
   - automatic screenshot via phantomjs
 
-# Dependencies
+# Dependencies and meta information
 
 
     uu = require "uutil"
+    jsonml2html = require "jsonml2html"
     
-
-# Meta information
-
     if isNodeJs
       exports.about =
         title: "SolApp"
@@ -169,6 +167,7 @@ any additional properties will also be passed on into `package.json`
           "uglify-js": "*"
           platformenv: "*"
           uutil: "*"
+          jsonml2html: "*"
         npmjs: true
         webjs: true
     
@@ -185,54 +184,6 @@ Passed on into package.json, to allow installing solapp binary with `npm install
 ## getArgs
 
     solapp.getArgs = -> if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
-
-## xmlEscape
-
-    solapp.xmlEscape = (str) -> String(str).replace RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), (c) -> "&##{c.charCodeAt 0};"
-
-## obj2style
-
-    solapp.obj2style = (obj) ->
-      (for key, val of obj
-        key = key.replace /[A-Z]/g, (c) -> "-" + c.toLowerCase()
-        val = "#{val}px" if typeof val == "number"
-        "#{key}:#{val}"
-      ).join ";"
-
-## jsonml2html
-
-    solapp.jsonml2html = (arr) ->
-      return "#{solapp.xmlEscape arr}" if !Array.isArray(arr)
-
-raw html, useful for stuff which shouldn't be xmlescaped etc.
-
-      return arr[1] if arr[0] == "rawhtml"
-
-normalise jsonml, make sure it contains attributes
-
-      arr = [arr[0], {}].concat arr.slice(1) if arr[1]?.constructor != Object
-      attr = uu.extend arr[1]
-
-convert style objects to strings
-
-      attr.style = solapp.obj2style attr.style if attr.style?.constructor == Object
-
-shorthand for classes and ids
-
-      tag = arr[0].replace /#([^.#]*)/, (_, id) -> attr.id = id; ""
-      tag = tag.replace /\.([^.#]*)/g, (_, cls) ->
-        attr["class"] = if attr["class"] == undefined then cls else "#{attr["class"]} #{cls}"
-        ""
-
-create actual tag string
-
-      result = "<#{tag}#{(" #{key}=\"#{solapp.xmlEscape val}\"" for key, val of attr).join ""}>"
-
-add children and endtag, if there are children. `<foo></foo>` is done with `["foo", ""]`
-
-      result += "#{arr.slice(2).map(solapp.jsonml2html).join ""}</#{tag}>" if arr.length > 2
-      return result
-    
 
 # SolApp tool
 
@@ -353,7 +304,7 @@ TODO: probably remove this one, when solapp-object is passed to main
       ensureGit = (project, done) ->
         return done?() if fs.existsSync "#{project.dirname}/.git"
         console.log "creating git repository..."
-        require("child_process").exec "git init && git add . && git commit -am \"initial commit\"", (err, stdout, stderr) ->
+        require("child_process").exec "git init && git add #{project.name}.coffee .gitignore .travis.yml README.md package.json && git commit -m \"initial commit\"", (err, stdout, stderr) ->
           throw err if err
           console.log stdout
           console.log stderr
@@ -491,7 +442,7 @@ TODO: probably remove this one, when solapp-object is passed to main
         express = require "express"
         app = express()
         app.all "/", (req, res) ->
-          res.end "<!DOCTYPE html>" + solapp.jsonml2html ["html"
+          res.end "<!DOCTYPE html>" + jsonml2html.jsonml2html ["html"
             ["head"].concat htmlHead(opt.project).concat [
               ["script", {src: "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"}, ""]
               ["style#solappStyle", ""]]
@@ -516,8 +467,8 @@ TODO: probably remove this one, when solapp-object is passed to main
           args: []
           setStyle: (style) ->
             document.getElementById("solappStyle").innerHTML =
-              ("#{key}{#{solapp.obj2style val}}" for key, val of style).join ""
-          setContent: (html) -> document.getElementById("solappContent").innerHTML = solapp.jsonml2html html
+              ("#{key}{#{jsonml2html.obj2style val}}" for key, val of style).join ""
+          setContent: (html) -> document.getElementById("solappContent").innerHTML = jsonml2html.jsonml2html html
           done: -> undefined
     
 

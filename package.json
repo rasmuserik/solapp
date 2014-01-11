@@ -1,6 +1,6 @@
 {
     "name": "solapp",
-    "version": "0.0.18",
+    "version": "0.0.19",
     "title": "SolApp",
     "description": "Framework for quickly creating apps",
     "keywords": [
@@ -18,7 +18,8 @@
         "socket.io-client": "*",
         "uglify-js": "*",
         "platformenv": "*",
-        "uutil": "*"
+        "uutil": "*",
+        "jsonml2html": "*"
     },
     "npmjs": true,
     "webjs": true,

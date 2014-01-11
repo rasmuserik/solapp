@@ -1,11 +1,13 @@
 (function() {
-  var build, commit, compile, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genCacheManifest, genReadme, htmlHead, loadProject, solapp, updateGitIgnore, uu, webjs;
+  var build, commit, compile, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genCacheManifest, genReadme, htmlHead, jsonml2html, loadProject, solapp, updateGitIgnore, uu, webjs;
 
   if (typeof isNodeJs !== "boolean") {
     require("platformenv").define(global);
   }
 
   uu = require("uutil");
+
+  jsonml2html = require("jsonml2html");
 
   if (isNodeJs) {
     exports.about = {
@@ -22,7 +24,8 @@
         "socket.io-client": "*",
         "uglify-js": "*",
         platformenv: "*",
-        uutil: "*"
+        uutil: "*",
+        jsonml2html: "*"
       },
       npmjs: true,
       webjs: true,
@@ -40,69 +43,6 @@
     } else {
       return location.hash.slice(1).split("/");
     }
-  };
-
-  solapp.xmlEscape = function(str) {
-    return String(str).replace(RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), function(c) {
-      return "&#" + (c.charCodeAt(0)) + ";";
-    });
-  };
-
-  solapp.obj2style = function(obj) {
-    var key, val;
-    return ((function() {
-      var _results;
-      _results = [];
-      for (key in obj) {
-        val = obj[key];
-        key = key.replace(/[A-Z]/g, function(c) {
-          return "-" + c.toLowerCase();
-        });
-        if (typeof val === "number") {
-          val = "" + val + "px";
-        }
-        _results.push("" + key + ":" + val);
-      }
-      return _results;
-    })()).join(";");
-  };
-
-  solapp.jsonml2html = function(arr) {
-    var attr, key, result, tag, val, _ref, _ref1;
-    if (!Array.isArray(arr)) {
-      return "" + (solapp.xmlEscape(arr));
-    }
-    if (arr[0] === "rawhtml") {
-      return arr[1];
-    }
-    if (((_ref = arr[1]) != null ? _ref.constructor : void 0) !== Object) {
-      arr = [arr[0], {}].concat(arr.slice(1));
-    }
-    attr = uu.extend(arr[1]);
-    if (((_ref1 = attr.style) != null ? _ref1.constructor : void 0) === Object) {
-      attr.style = solapp.obj2style(attr.style);
-    }
-    tag = arr[0].replace(/#([^.#]*)/, function(_, id) {
-      attr.id = id;
-      return "";
-    });
-    tag = tag.replace(/\.([^.#]*)/g, function(_, cls) {
-      attr["class"] = attr["class"] === void 0 ? cls : "" + attr["class"] + " " + cls;
-      return "";
-    });
-    result = "<" + tag + (((function() {
-      var _results;
-      _results = [];
-      for (key in attr) {
-        val = attr[key];
-        _results.push(" " + key + "=\"" + (solapp.xmlEscape(val)) + "\"");
-      }
-      return _results;
-    })()).join("")) + ">";
-    if (arr.length > 2) {
-      result += "" + (arr.slice(2).map(solapp.jsonml2html).join("")) + "</" + tag + ">";
-    }
-    return result;
   };
 
   if (isNodeJs) {
@@ -220,7 +160,7 @@
         return typeof done === "function" ? done() : void 0;
       }
       console.log("creating git repository...");
-      return require("child_process").exec("git init && git add . && git commit -am \"initial commit\"", function(err, stdout, stderr) {
+      return require("child_process").exec("git init && git add " + project.name + ".coffee .gitignore .travis.yml README.md package.json && git commit -m \"initial commit\"", function(err, stdout, stderr) {
         if (err) {
           throw err;
         }
@@ -400,7 +340,7 @@
       express = require("express");
       app = express();
       app.all("/", function(req, res) {
-        return res.end("<!DOCTYPE html>" + solapp.jsonml2html([
+        return res.end("<!DOCTYPE html>" + jsonml2html.jsonml2html([
           "html", ["head"].concat(htmlHead(opt.project).concat([
             [
               "script", {
@@ -455,13 +395,13 @@
             _results = [];
             for (key in style) {
               val = style[key];
-              _results.push("" + key + "{" + (solapp.obj2style(val)) + "}");
+              _results.push("" + key + "{" + (jsonml2html.obj2style(val)) + "}");
             }
             return _results;
           })()).join("");
         },
         setContent: function(html) {
-          return document.getElementById("solappContent").innerHTML = solapp.jsonml2html(html);
+          return document.getElementById("solappContent").innerHTML = jsonml2html.jsonml2html(html);
         },
         done: function() {
           return void 0;
