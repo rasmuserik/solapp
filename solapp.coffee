@@ -141,13 +141,10 @@
 #   - infer dependencies from `require`-analysis of compiled coffeescript
 #   - automatic screenshot via phantomjs
 #
-#{{{1 Environment
-#
-# Information about current environment, ie. - are we running on nodejs, web, running tests, etc.
-#
-# These are global properties, to be able to use uglify to remove them when preprocessing, ie. `if(isTesting) { ... }` will be fully removed in minified non-test builds...
+#{{{1 Dependencies
 #
 require("platformenv").define global if typeof isNodeJs != "boolean"
+uu = require "uutil"
 
 #{{{1 Meta information
 if isNodeJs
@@ -164,7 +161,8 @@ if isNodeJs
       "socket.io": "*"
       "socket.io-client": "*"
       "uglify-js": "*"
-      "platformenv": "*"
+      platformenv: "*"
+      uulib: "*"
     npmjs: true
     webjs: true
 
@@ -175,57 +173,6 @@ if isNodeJs
 solapp = exports
 #{{{2 getArgs
 solapp.getArgs = -> if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
-#{{{2 sleep
-solapp.sleep = (t,fn) -> setTimeout fn, t * 1000
-#{{{2 extend
-solapp.extend = (target, sources...) ->
-  for source in sources
-    for key, val of source
-      target[key] = val
-  target
-#{{{2 whenDone - combining several callbacks into a single one
-#
-# Utility function for combining several callbacks into a single one. `fn = solapp.whenDone(done)` returns a function `fn` where each call `done1 = fn(); done2 = fn(); ...` returns new callback functions, such that when all of `done1 done2 ...` has been called once, then done will be called.
-#
-solapp.whenDone = (done) ->
-  count = 0
-  results = []
-  ->
-    idx = count
-    ++count
-    (args...) ->
-      args.push idx
-      results.push args
-      done? results if results.length == count
-
-#{{{2 nextTick
-solapp.nextTick = if isNodeJs then process.nextTick else (fn) -> setTimeout fn, 0
-#{{{2 throttleAsyncFn - throttle asynchronous function
-solapp.throttleAsyncFn = (fn, delay) ->
-  delay ||= 1000
-  running = []
-  rerun = []
-  scheduled = false
-  lastTime = 0
-  run = ->
-    scheduled = false
-    t = running; running = rerun; rerun = running
-    lastTime = Date.now()
-    fn (args...) ->
-      for cb in running
-        cb args...
-      running.empty()
-      schedule()
-
-  schedule = ->
-    if rerun.length > 0 && running.length == 0 && !scheduled
-      scheduled = true
-      setTimeout run, Math.max(0, lastTime - Date.now() - delay)
-
-  (cb) ->
-    rerun.push cb
-    schedule()
-
 #{{{2 xmlEscape
 solapp.xmlEscape = (str) -> String(str).replace RegExp("[\x00-\x1f\x80-\uffff&<>\"']", "g"), (c) -> "&##{c.charCodeAt 0};"
 #{{{2 obj2style
@@ -242,7 +189,7 @@ solapp.jsonml2html = (arr) ->
   return arr[1] if arr[0] == "rawhtml"
   # normalise jsonml, make sure it contains attributes
   arr = [arr[0], {}].concat arr.slice(1) if arr[1]?.constructor != Object
-  attr = solapp.extend arr[1]
+  attr = uu.extend arr[1]
   # convert style objects to strings
   attr.style = solapp.obj2style attr.style if attr.style?.constructor == Object
   # shorthand for classes and ids
@@ -328,7 +275,7 @@ if isNodeJs
     pkg = project.package =
       name: project.name
       version: project.package.version || "0.0.0"
-    solapp.extend pkg, project.module.about || {}
+    uu.extend pkg, project.module.about || {}
     pkg.fullname ?= pkg.title || pkg.name
     pkg.title ?= pkg.fullname
     pkg.author ?= "Rasmus Erik Voel Jensen (solsort.com)"
@@ -347,7 +294,7 @@ if isNodeJs
   #{{{2 build
   #{{{3 build - Actual build function
   build = (project, done) ->
-    next = solapp.whenDone -> ensureGit project, done
+    next = uu.whenDone -> ensureGit project, done
     write = (name, content) ->
       console.log "writing #{name}"
       fs.writeFile "#{project.dirname}/#{name}", content + "\n", next()
@@ -519,7 +466,7 @@ if isDevServer
     else if solapp.getArgs()[0] in ["start", "commit", "build"]
       undefined
     else
-      exports.main solapp.extend {}, solapp, opt
+      exports.main uu.extend {}, solapp, opt
 
   #{{{2 commit
 if isNodeJs
@@ -544,7 +491,7 @@ if isNodeJs
 #{{{2 SolApp dispatch
 if isNodeJs then do ->
   #{{{3 main dispatch
-  if require.main == module then solapp.nextTick ->
+  if require.main == module then uu.nextTick ->
     loadProject process.cwd(), (project) ->
       commands =
         start: devserver
@@ -555,7 +502,7 @@ if isNodeJs then do ->
         build: (opt) -> build project, opt.done
       command = process.argv[2]
       fn = commands[process.argv[2]] || project.module.main
-      fn?(solapp.extend {}, solapp, {
+      fn?(uu.extend {}, solapp, {
         project: project
         cmd: command
         args: process.argv.slice(3)

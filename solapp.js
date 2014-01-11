@@ -1,10 +1,11 @@
 (function() {
-  var build, commit, compile, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genCacheManifest, genReadme, htmlHead, loadProject, solapp, updateGitIgnore, webjs,
-    __slice = [].slice;
+  var build, commit, compile, devserver, devserverJsonml, ensureCoffeeSource, ensureGit, ensureSolAppInstalled, expandPackage, fs, genCacheManifest, genReadme, htmlHead, loadProject, solapp, updateGitIgnore, uu, webjs;
 
   if (typeof isNodeJs !== "boolean") {
     require("platformenv").define(global);
   }
+
+  uu = require("uutil");
 
   if (isNodeJs) {
     exports.about = {
@@ -20,7 +21,8 @@
         "socket.io": "*",
         "socket.io-client": "*",
         "uglify-js": "*",
-        "platformenv": "*"
+        platformenv: "*",
+        uulib: "*"
       },
       npmjs: true,
       webjs: true,
@@ -38,84 +40,6 @@
     } else {
       return location.hash.slice(1).split("/");
     }
-  };
-
-  solapp.sleep = function(t, fn) {
-    return setTimeout(fn, t * 1000);
-  };
-
-  solapp.extend = function() {
-    var key, source, sources, target, val, _i, _len;
-    target = arguments[0], sources = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-    for (_i = 0, _len = sources.length; _i < _len; _i++) {
-      source = sources[_i];
-      for (key in source) {
-        val = source[key];
-        target[key] = val;
-      }
-    }
-    return target;
-  };
-
-  solapp.whenDone = function(done) {
-    var count, results;
-    count = 0;
-    results = [];
-    return function() {
-      var idx;
-      idx = count;
-      ++count;
-      return function() {
-        var args;
-        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        args.push(idx);
-        results.push(args);
-        if (results.length === count) {
-          return typeof done === "function" ? done(results) : void 0;
-        }
-      };
-    };
-  };
-
-  solapp.nextTick = isNodeJs ? process.nextTick : function(fn) {
-    return setTimeout(fn, 0);
-  };
-
-  solapp.throttleAsyncFn = function(fn, delay) {
-    var lastTime, rerun, run, running, schedule, scheduled;
-    delay || (delay = 1000);
-    running = [];
-    rerun = [];
-    scheduled = false;
-    lastTime = 0;
-    run = function() {
-      var t;
-      scheduled = false;
-      t = running;
-      running = rerun;
-      rerun = running;
-      lastTime = Date.now();
-      return fn(function() {
-        var args, cb, _i, _len;
-        args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        for (_i = 0, _len = running.length; _i < _len; _i++) {
-          cb = running[_i];
-          cb.apply(null, args);
-        }
-        running.empty();
-        return schedule();
-      });
-    };
-    schedule = function() {
-      if (rerun.length > 0 && running.length === 0 && !scheduled) {
-        scheduled = true;
-        return setTimeout(run, Math.max(0, lastTime - Date.now() - delay));
-      }
-    };
-    return function(cb) {
-      rerun.push(cb);
-      return schedule();
-    };
   };
 
   solapp.xmlEscape = function(str) {
@@ -154,7 +78,7 @@
     if (((_ref = arr[1]) != null ? _ref.constructor : void 0) !== Object) {
       arr = [arr[0], {}].concat(arr.slice(1));
     }
-    attr = solapp.extend(arr[1]);
+    attr = uu.extend(arr[1]);
     if (((_ref1 = attr.style) != null ? _ref1.constructor : void 0) === Object) {
       attr.style = solapp.obj2style(attr.style);
     }
@@ -231,7 +155,7 @@
         name: project.name,
         version: project["package"].version || "0.0.0"
       };
-      solapp.extend(pkg, project.module.about || {});
+      uu.extend(pkg, project.module.about || {});
       if (pkg.fullname == null) {
         pkg.fullname = pkg.title || pkg.name;
       }
@@ -270,7 +194,7 @@
     };
     build = function(project, done) {
       var next, write;
-      next = solapp.whenDone(function() {
+      next = uu.whenDone(function() {
         return ensureGit(project, done);
       });
       write = function(name, content) {
@@ -552,7 +476,7 @@
       } else if ((_ref = solapp.getArgs()[0]) === "start" || _ref === "commit" || _ref === "build") {
         return void 0;
       } else {
-        return exports.main(solapp.extend({}, solapp, opt));
+        return exports.main(uu.extend({}, solapp, opt));
       }
     };
   }
@@ -586,7 +510,7 @@
   if (isNodeJs) {
     (function() {
       if (require.main === module) {
-        return solapp.nextTick(function() {
+        return uu.nextTick(function() {
           return loadProject(process.cwd(), function(project) {
             var command, commands, fn;
             commands = {
@@ -606,7 +530,7 @@
             };
             command = process.argv[2];
             fn = commands[process.argv[2]] || project.module.main;
-            return typeof fn === "function" ? fn(solapp.extend({}, solapp, {
+            return typeof fn === "function" ? fn(uu.extend({}, solapp, {
               project: project,
               cmd: command,
               args: process.argv.slice(3),

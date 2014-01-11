@@ -145,13 +145,10 @@ any additional properties will also be passed on into `package.json`
   - infer dependencies from `require`-analysis of compiled coffeescript
   - automatic screenshot via phantomjs
 
-# Environment
-
-Information about current environment, ie. - are we running on nodejs, web, running tests, etc.
-
-These are global properties, to be able to use uglify to remove them when preprocessing, ie. `if(isTesting) { ... }` will be fully removed in minified non-test builds...
+# Dependencies
 
 
+    uu = require "uutil"
     
 
 # Meta information
@@ -170,7 +167,8 @@ These are global properties, to be able to use uglify to remove them when prepro
           "socket.io": "*"
           "socket.io-client": "*"
           "uglify-js": "*"
-          "platformenv": "*"
+          platformenv: "*"
+          uulib: "*"
         npmjs: true
         webjs: true
     
@@ -187,67 +185,6 @@ Passed on into package.json, to allow installing solapp binary with `npm install
 ## getArgs
 
     solapp.getArgs = -> if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
-
-## sleep
-
-    solapp.sleep = (t,fn) -> setTimeout fn, t * 1000
-
-## extend
-
-    solapp.extend = (target, sources...) ->
-      for source in sources
-        for key, val of source
-          target[key] = val
-      target
-
-## whenDone - combining several callbacks into a single one
-
-Utility function for combining several callbacks into a single one. `fn = solapp.whenDone(done)` returns a function `fn` where each call `done1 = fn(); done2 = fn(); ...` returns new callback functions, such that when all of `done1 done2 ...` has been called once, then done will be called.
-
-
-    solapp.whenDone = (done) ->
-      count = 0
-      results = []
-      ->
-        idx = count
-        ++count
-        (args...) ->
-          args.push idx
-          results.push args
-          done? results if results.length == count
-    
-
-## nextTick
-
-    solapp.nextTick = if isNodeJs then process.nextTick else (fn) -> setTimeout fn, 0
-
-## throttleAsyncFn - throttle asynchronous function
-
-    solapp.throttleAsyncFn = (fn, delay) ->
-      delay ||= 1000
-      running = []
-      rerun = []
-      scheduled = false
-      lastTime = 0
-      run = ->
-        scheduled = false
-        t = running; running = rerun; rerun = running
-        lastTime = Date.now()
-        fn (args...) ->
-          for cb in running
-            cb args...
-          running.empty()
-          schedule()
-    
-      schedule = ->
-        if rerun.length > 0 && running.length == 0 && !scheduled
-          scheduled = true
-          setTimeout run, Math.max(0, lastTime - Date.now() - delay)
-    
-      (cb) ->
-        rerun.push cb
-        schedule()
-    
 
 ## xmlEscape
 
@@ -274,7 +211,7 @@ raw html, useful for stuff which shouldn't be xmlescaped etc.
 normalise jsonml, make sure it contains attributes
 
       arr = [arr[0], {}].concat arr.slice(1) if arr[1]?.constructor != Object
-      attr = solapp.extend arr[1]
+      attr = uu.extend arr[1]
 
 convert style objects to strings
 
@@ -376,7 +313,7 @@ TODO: probably remove this one, when solapp-object is passed to main
         pkg = project.package =
           name: project.name
           version: project.package.version || "0.0.0"
-        solapp.extend pkg, project.module.about || {}
+        uu.extend pkg, project.module.about || {}
         pkg.fullname ?= pkg.title || pkg.name
         pkg.title ?= pkg.fullname
         pkg.author ?= "Rasmus Erik Voel Jensen (solsort.com)"
@@ -397,7 +334,7 @@ TODO: probably remove this one, when solapp-object is passed to main
 ### build - Actual build function
 
       build = (project, done) ->
-        next = solapp.whenDone -> ensureGit project, done
+        next = uu.whenDone -> ensureGit project, done
         write = (name, content) ->
           console.log "writing #{name}"
           fs.writeFile "#{project.dirname}/#{name}", content + "\n", next()
@@ -591,7 +528,7 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
         else if solapp.getArgs()[0] in ["start", "commit", "build"]
           undefined
         else
-          exports.main solapp.extend {}, solapp, opt
+          exports.main uu.extend {}, solapp, opt
     
 
 ## commit
@@ -622,7 +559,7 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
 
 ### main dispatch
 
-      if require.main == module then solapp.nextTick ->
+      if require.main == module then uu.nextTick ->
         loadProject process.cwd(), (project) ->
           commands =
             start: devserver
@@ -633,7 +570,7 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
             build: (opt) -> build project, opt.done
           command = process.argv[2]
           fn = commands[process.argv[2]] || project.module.main
-          fn?(solapp.extend {}, solapp, {
+          fn?(uu.extend {}, solapp, {
             project: project
             cmd: command
             args: process.argv.slice(3)
