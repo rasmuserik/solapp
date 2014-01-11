@@ -22,6 +22,10 @@
       npmjs: true,
       webjs: true,
       "package": {
+        scripts: {
+          start: "node solapp.js start",
+          test: "node solapp.js test"
+        },
         dependencies: {
           "coffee-script": "*",
           express: "3.x",
@@ -120,12 +124,6 @@
       if (pkg.scripts == null) {
         pkg.scripts = {};
       }
-      if ((_base = pkg.scripts).start == null) {
-        _base.start = "node ./node_modules/solapp/solapp.js start";
-      }
-      if ((_base1 = pkg.scripts).test == null) {
-        _base1.test = "node ./node_modules/solapp/solapp.js test";
-      }
       if ((_ref = pkg.html5) != null) {
         if (_ref.files == null) {
           _ref.files = [];
@@ -136,6 +134,14 @@
       }
       uu.extend(pkg.dependencies, project.about.dependencies);
       pkg.dependencies.platformenv = "*";
+      if (pkg.dependencies.solapp) {
+        if ((_base = pkg.scripts).start == null) {
+          _base.start = "node ./node_modules/solapp/solapp.js start";
+        }
+        if ((_base1 = pkg.scripts).test == null) {
+          _base1.test = "node ./node_modules/solapp/solapp.js test";
+        }
+      }
       return pkg.repository = {
         type: "git",
         url: "http://github.com/" + about.owner + "/" + about.name + ".git"

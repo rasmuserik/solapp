@@ -1,6 +1,10 @@
 {
     "name": "solapp",
-    "version": "0.0.22",
+    "version": "0.0.23",
+    "scripts": {
+        "start": "node solapp.js start",
+        "test": "node solapp.js test"
+    },
     "dependencies": {
         "coffee-script": "*",
         "express": "3.x",
@@ -17,10 +21,6 @@
     "keywords": [],
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
     "main": "solapp.js",
-    "scripts": {
-        "start": "node ./node_modules/solapp/solapp.js start",
-        "test": "node ./node_modules/solapp/solapp.js test"
-    },
     "repository": {
         "type": "git",
         "url": "http://github.com/rasmuserik/solapp.git"

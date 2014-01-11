@@ -167,6 +167,9 @@ if isNodeJs
     npmjs: true
     webjs: true
     package:
+      scripts:
+        start: "node solapp.js start"
+        test: "node solapp.js test"
       dependencies:
         "coffee-script": "*"
         express: "3.x"
@@ -262,12 +265,13 @@ if isNodeJs
     pkg.author ?= about.author || "Rasmus Erik Voel Jensen (solsort.com)"
     pkg.main ?= pkg.name + ".js"
     pkg.scripts ?= {}
-    pkg.scripts.start ?= "node ./node_modules/solapp/solapp.js start"
-    pkg.scripts.test ?= "node ./node_modules/solapp/solapp.js test"
     pkg.html5?.files ?= []
     pkg.dependencies ?= {}
     uu.extend pkg.dependencies, project.about.dependencies
     pkg.dependencies.platformenv = "*"
+    if pkg.dependencies.solapp
+      pkg.scripts.start ?= "node ./node_modules/solapp/solapp.js start"
+      pkg.scripts.test ?= "node ./node_modules/solapp/solapp.js test"
     pkg.repository =
       type: "git"
       url: "http://github.com/#{about.owner}/#{about.name}.git"
