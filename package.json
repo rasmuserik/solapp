@@ -1,9 +1,6 @@
 {
     "name": "solapp",
-    "version": "0.0.21",
-    "title": "SolApp",
-    "description": "Tool for quickly creating apps",
-    "keywords": [],
+    "version": "0.0.22",
     "dependencies": {
         "coffee-script": "*",
         "express": "3.x",
@@ -12,14 +9,13 @@
         "uutil": "*",
         "jsonml2html": "*"
     },
-    "npmjs": true,
-    "webjs": true,
     "bin": {
         "solapp": "./solapp.coffee"
     },
     "fullname": "SolApp",
+    "description": "Tool for quickly creating apps",
+    "keywords": [],
     "author": "Rasmus Erik Voel Jensen (solsort.com)",
-    "owner": "rasmuserik",
     "main": "solapp.js",
     "scripts": {
         "start": "node ./node_modules/solapp/solapp.js start",

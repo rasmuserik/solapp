@@ -114,21 +114,27 @@ any additional properties will also be passed on into `package.json`
   - only increment version on commit/publish
   - add devserver-`solsort.com/_..`
   - fix userScaleable bug...
+  - fix require in client apps
+  - exports.about has package section, and not everything is moved into package.json
 - development
 
 ## Roadmap
 
 - now
-  - fix require in client apps
 - 0.1 first working prototype, running 360º and uccorg-backend etc.
   - stuff needed for 360º
   - stuff needed for uccorg backend
-  - make sure that html5-csses/jses are include in devserver
-  - autoreload devserver content on file change, restart/execute server
   - api-creation-library
-  - faye-support
+  - manager server - keep-alive/restart
+    - start/restart/stop "app-dirname"
+  - solnet
+  - web-server - w/static+api-server - url: /foo/bar/baz `.split "."`, urldecode, json if `/^([0-9"[{]|true|false|null)/`, string otherwise - foo must be registrated endpoint, json parameters can be overwritten with POST json object (array of parameters, without endpoint length)
   - basic publish command with git-tag
+  - map name foo-bar to window.fooBar when webjs
 - later
+  - cleanup dev-server
+  - autoreload devserver content on file change, restart/execute server
+  - make sure that html5-csses/jses are include in devserver
   - generate table-of-contents in readme
   - url in exports.about creates link from title in readme
   - generate index.html
@@ -159,19 +165,20 @@ any additional properties will also be passed on into `package.json`
         description: "Tool for quickly creating apps"
         keywords: []
         dependencies:
-          "coffee-script": "*"
-          express: "3.x"
-          "uglify-js": "*"
           platformenv: "*"
           uutil: "*"
           jsonml2html: "*"
         npmjs: true
         webjs: true
-    
+        package:
+          dependencies:
+            "coffee-script": "*"
+            express: "3.x"
+            "uglify-js": "*"
 
 Passed on into package.json, to allow installing solapp binary with `npm install`
 
-        bin: {solapp: "./solapp.coffee"}
+          bin: {solapp: "./solapp.coffee"}
     
 
 # Utility functions
@@ -259,24 +266,29 @@ TODO: probably remove this one, when solapp-object is passed to main
 ### expandPackage - create package.json content, and increment minor version
 
       expandPackage = (project) ->
+        about = project.about = project.module.about
+        about.name ?= project.name
+        about.owner ?= "rasmuserik"
+    
         pkg = project.package =
           name: project.name
           version: project.package.version || "0.0.0"
-        uu.extend pkg, project.module.about || {}
-        pkg.fullname ?= pkg.title || pkg.name
-        pkg.title ?= pkg.fullname
-        pkg.author ?= "Rasmus Erik Voel Jensen (solsort.com)"
-        pkg.owner ?= "rasmuserik"
-        pkg.main = pkg.name + ".js"
+        uu.extend pkg, about.package || {}
+        pkg.fullname ?= about.title || about.name
+        pkg.description ?= about.description
+        pkg.keywords ?= about.keywords || []
+        pkg.author ?= about.author || "Rasmus Erik Voel Jensen (solsort.com)"
+        pkg.main ?= pkg.name + ".js"
         pkg.scripts ?= {}
         pkg.scripts.start ?= "node ./node_modules/solapp/solapp.js start"
         pkg.scripts.test ?= "node ./node_modules/solapp/solapp.js test"
         pkg.html5?.files ?= []
         pkg.dependencies ?= {}
+        uu.extend pkg.dependencies, project.about.dependencies
         pkg.dependencies.platformenv = "*"
         pkg.repository =
           type: "git"
-          url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
+          url: "http://github.com/#{about.owner}/#{about.name}.git"
     
 
 ## build
@@ -292,9 +304,9 @@ TODO: probably remove this one, when solapp-object is passed to main
         write "package.json", JSON.stringify(project.package, null, 4)
         updateGitIgnore project, next()
         write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
-        write "manifest.appcache", genCacheManifest project if project.package.html5
-        write "#{project.name}.js", compile project if project.package.npmjs
-        write "#{project.name}.min.js", webjs project if project.package.webjs
+        write "manifest.appcache", genCacheManifest project if project.about.html5
+        write "#{project.name}.js", compile project if project.about.npmjs
+        write "#{project.name}.min.js", webjs project if project.about.webjs
     
 
 ### ensureGit
@@ -315,10 +327,10 @@ TODO: probably remove this one, when solapp-object is passed to main
         source = project.source
         pkg = project.package
         result =""
-        result += "![#{pkg.name}](https://raw.github.com/#{pkg.owner}/#{pkg.name}/master/meta/feature.png\n" if fs.existsSync "#{project.dirname}/meta/feature.png"
-        result += "# #{pkg.title || pkg.name}\n"
-        result += "[![ci](https://secure.travis-ci.org/#{pkg.owner}/#{pkg.name}.png)](http://travis-ci.org/#{pkg.owner}/#{pkg.name})\n"
-        result += "\n#{pkg.description}\n"
+        result += "![#{project.about.name}](https://raw.github.com/#{project.about.owner}/#{project.about.name}/master/meta/feature.png\n" if fs.existsSync "#{project.dirname}/meta/feature.png"
+        result += "# #{project.about.title || project.about.name}\n"
+        result += "[![ci](https://secure.travis-ci.org/#{project.about.owner}/#{project.about.name}.png)](http://travis-ci.org/#{project.about.owner}/#{project.about.name})\n"
+        result += "\n#{project.about.description}\n"
     
         for line in source.split("\n")
           continue if line.trim() in ["#!/usr/bin/env coffee", "require(\"platformenv\").define global if typeof isNodeJs != \"boolean\""]
@@ -339,8 +351,8 @@ TODO: probably remove this one, when solapp-object is passed to main
     
           result += line + "\n"
     
-        result += "\n\n----\n\nAutogenerated README.md, edit #{pkg.name}.coffee to update "
-        result += "[![repos](https://ssl.solsort.com/_solapp_#{pkg.owner}_#{pkg.name}.png)](https://github.com/#{pkg.owner}/#{pkg.name})"
+        result += "\n\n----\n\nAutogenerated README.md, edit #{project.about.name}.coffee to update "
+        result += "[![repos](https://ssl.solsort.com/_solapp_#{project.about.owner}_#{project.about.name}.png)](https://github.com/#{project.about.owner}/#{project.about.name})"
     
         return result
     
@@ -363,10 +375,10 @@ TODO: probably remove this one, when solapp-object is passed to main
 ### genCacheManifest
 
       genCacheManifest = (project) -> """
-          CACHE MANIFEST\n# #{project.package.name} #{Date()}
+          CACHE MANIFEST\n# #{project.name} #{Date()}
           CACHE
           index.html
-          \n#{(project.package.html5?.files || []).join "\n"}
+          \n#{(project.about.html5?.files || []).join "\n"}
           \n#{if fs.existsSync "#{project.dirname}/icon.png" then "icon.png" else ""}
           NETWORK
           *
@@ -415,14 +427,14 @@ TODO: probably remove this one, when solapp-object is passed to main
       htmlHead = (project) ->
         head = [
             "head"
-            ["title", project.package.title]
+            ["title", project.about.title]
             ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
             ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
             ["meta", {name: "HandheldFriendly", content: "true"}]
             ["meta", {name: "format-detection", content: "telephone=no"}]
         ]
         str = "width=device-width, initial-scale=1.0"
-        str += ", minimum-scale=1.0, maximum-scale=1.0, user-scalable=0" if project.package.userScalable
+        str += ", minimum-scale=1.0, maximum-scale=1.0, user-scalable=0" if project.about.userScalable
         head.push ["meta", {name: "viewport", content: str}]
         return head
 
@@ -432,19 +444,32 @@ TODO: probably remove this one, when solapp-object is passed to main
     
         express = require "express"
         app = express()
+        head = htmlHead opt.project
+        head.push ["script", {src: "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"}, ""]
+        head.push ["style#solappStyle", ""]
+        head.push ["script", ["rawhtml", "
+          global = window;
+          isNodeJs = isTesting = false;
+          isDevServer = true;
+          require = function(name) { return window[name] };
+        ".replace(/[ ]+/g, " ")]]
+        head.push ["script", ["rawhtml", fs.readFileSync "#{__dirname}/node_modules/uutil/uutil.min.js"]]
+        head.push ["script", ["rawhtml", fs.readFileSync "#{__dirname}/node_modules/jsonml2html/jsonml2html.min.js"]]
+        for module, _ of opt.project.about.dependencies
+          head.push ["script", {src: "node_modules/#{module}/#{module}.min.js"}, ""]
+    
         app.all "/", (req, res) ->
           res.end "<!DOCTYPE html>" + jsonml2html.jsonml2html ["html"
-            htmlHead(opt.project).concat [
-              ["script", {src: "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"}, ""]
-              ["style#solappStyle", ""]]
+            head
             ["body"
               ["div#solappContent", ""]
-              ["script", ["rawhtml", "global=window;exports={};isDevServer=true"]]
+              ["script", ["rawhtml", "exports={};isDevServer=true;"]]
               ["script", {type: "text/coffeescript", src: "node_modules/solapp/solapp.coffee"}, ""]
-              ["script", {type: "text/coffeescript"}, ["rawhtml", "window.exports={}"]]
+              ["script", {type: "text/coffeescript"}, ["rawhtml", "window.solapp=exports;window.exports={}"]]
               ["script", {type: "text/coffeescript", src: "#{opt.project.name}.coffee"}, ""]
-              ["script", {type: "text/coffeescript"}, ["rawhtml", "require('solapp').devserverMain(#{JSON.stringify opt.project.package})"]]
-              ["script", {src: "//ssl.solsort.com/_devserver_#{opt.project.package.owner}_#{opt.project.package.name}.js"}, ""]
+              ["script", {type: "text/coffeescript"}, ["rawhtml", "window[\"#{opt.project.name}\"]=exports;
+                  require('solapp').devserverMain(#{JSON.stringify opt.project.package})"]]
+              ["script", {src: "//ssl.solsort.com/_devserver_#{opt.project.about.owner}_#{opt.project.about.name}.js"}, ""]
             ]]
         app.use express.static process.cwd()
         app.listen 8080
@@ -454,13 +479,12 @@ TODO: probably remove this one, when solapp-object is passed to main
 ### Code running in browser
 
     if isDevServer
-      window.require = (module) -> if module == "solapp" then return solapp else throw "not implemented"
-      solapp.devserverMain = (pkg)->
+      solapp.devserverMain = (pkg) ->
         opt =
           args: []
           setStyle: (style) ->
             document.getElementById("solappStyle").innerHTML =
-              ("#{key}{#{jsonml2html.obj2style val}}" for key, val of style).join ""
+              ("#{key}{#{require("jsonml2html").obj2style val}}" for key, val of style).join ""
           setContent: (html) -> document.getElementById("solappContent").innerHTML = jsonml2html.jsonml2html html
           done: -> undefined
     
@@ -472,7 +496,8 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
         else if solapp.getArgs()[0] in ["start", "commit", "build"]
           undefined
         else
-          exports.main uu.extend {}, solapp, opt
+          console.log solapp, opt
+          exports.main require("uutil").extend {}, solapp, opt
     
 
 ## commit
@@ -488,7 +513,7 @@ Dispatch by first arg, - TODO merge with SolApp dispatch
     
         build project, ->
           command = "npm test && git commit -am \"#{msg}\" && git pull && git push"
-          if project.package.npmjs
+          if project.about.npmjs
             command += " && npm publish"
           console.log "running:\n#{command}"
           require("child_process").exec command, (err, stdout, stderr) ->
