@@ -105,25 +105,27 @@
 #   - compile to $APPNAME.js
 #   - isNodeJs - optional code - automatically removable for web environment
 #   - Automatically create .travis.yml
+#   - split out into microlibraries, ie. `require("platformDefs").register global if typeof isNodeJs != "boolean"`, `jsonml2html`, `uutil`, ...
+#   - have date/time instead of version in manifest
+#   - only increment version on commit/publish
+#   - add devserver-`solsort.com/_..`
+#   - fix userScaleable bug...
 # - development
 #
 #{{{2 Roadmap
 #
+# - now
+#   - fix require in client apps
 # - 0.1 first working prototype, running 360º and uccorg-backend etc.
-#   - make sure that html5-csses are include in devserver
-#   - add devserver-`solsort.com/_..`
-#   - userScaleable bug...
 #   - stuff needed for 360º
 #   - stuff needed for uccorg backend
+#   - make sure that html5-csses/jses are include in devserver
 #   - autoreload devserver content on file change, restart/execute server
 #   - api-creation-library
-#   - faye-support - replace socket.io
-#   - only increment version on publish
-#     - have date/time instead of version in manifest
+#   - faye-support
 #   - basic publish command with git-tag
-#   - generate table-of-contents in readme
-#   - split out into microlibraries, ie. `require("platformDefs").register global if typeof isNodeJs != "boolean"`, `jsonml2html`, `uutil`, ...
 # - later
+#   - generate table-of-contents in readme
 #   - url in exports.about creates link from title in readme
 #   - generate index.html
 #   - automatic creation of gh-pages branch with publication of index.html
@@ -150,16 +152,11 @@ jsonml2html = require "jsonml2html"
 if isNodeJs
   exports.about =
     title: "SolApp"
-    description: "Framework for quickly creating apps"
-    keywords: ["framework", "html5", "phonegap"]
+    description: "Tool for quickly creating apps"
+    keywords: []
     dependencies:
-      async: "*"
       "coffee-script": "*"
       express: "3.x"
-      glob: "*"
-      request: "*"
-      "socket.io": "*"
-      "socket.io-client": "*"
       "uglify-js": "*"
       platformenv: "*"
       uutil: "*"
@@ -218,6 +215,7 @@ if isNodeJs
       fs.writeFileSync "#{project.dirname}/#{project.name}.coffee", """
         #!/usr/bin/env coffee
         require("platformenv").define global if typeof isNodeJs != "boolean"
+        \n##{"{"}{{1 Actual source code
         if isNodeJs 
           exports.about =
             title: "#{project.name}"
@@ -235,7 +233,7 @@ if isNodeJs
               ]
             dependencies:
               solapp: "*"
-        \n##{"{"}{{1 Main
+
         exports.main = (opt) ->
           opt.setStyle {h1: {backgroundColor: "green"}}
           opt.setContent ["div", ["h1", "hello world"]]
@@ -373,29 +371,22 @@ if isNodeJs
   #{{{3 devserverJsonml - create the html jsonml-object for the dev-server
   devserverJsonml = (project) ->
     ["html", {manifest: "manifest.appcache"},
-      ["head"
-        ["title", project.package.title]
-        ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
-        ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
-        ["meta", {name: "HandheldFriendly", content: "true"}]
-        ["meta", {name: "viewport", content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0#{
-          if project.package.userScalable then "" else ", user-scalable=0"}"}]
-        ["meta", {name: "format-detection", content: "telephone=no"}]
-      ]
+      htmlHead project
       ["body", ""]
     ]
 
   #{{{3 htmlHead
   htmlHead = (project) ->
     head = [
+        "head"
         ["title", project.package.title]
         ["meta", {"http-equiv": "content-type", content: "text/html;charset=UTF-8"}]
         ["meta", {"http-equiv": "content-type", content: "IE=edge,chrome=1"}]
         ["meta", {name: "HandheldFriendly", content: "true"}]
         ["meta", {name: "format-detection", content: "telephone=no"}]
     ]
-    str = "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"
-    str += ", user-scalable=0" if project.package.userScalable
+    str = "width=device-width, initial-scale=1.0"
+    str += ", minimum-scale=1.0, maximum-scale=1.0, user-scalable=0" if project.package.userScalable
     head.push ["meta", {name: "viewport", content: str}]
     return head
   #{{{3 devserver
@@ -405,7 +396,7 @@ if isNodeJs
     app = express()
     app.all "/", (req, res) ->
       res.end "<!DOCTYPE html>" + jsonml2html.jsonml2html ["html"
-        ["head"].concat htmlHead(opt.project).concat [
+        htmlHead(opt.project).concat [
           ["script", {src: "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"}, ""]
           ["style#solappStyle", ""]]
         ["body"
@@ -414,7 +405,9 @@ if isNodeJs
           ["script", {type: "text/coffeescript", src: "node_modules/solapp/solapp.coffee"}, ""]
           ["script", {type: "text/coffeescript"}, ["rawhtml", "window.exports={}"]]
           ["script", {type: "text/coffeescript", src: "#{opt.project.name}.coffee"}, ""]
-          ["script", {type: "text/coffeescript"}, ["rawhtml", "require('solapp').devserverMain(#{JSON.stringify opt.project.package})"]]]]
+          ["script", {type: "text/coffeescript"}, ["rawhtml", "require('solapp').devserverMain(#{JSON.stringify opt.project.package})"]]
+          ["script", {src: "//ssl.solsort.com/_devserver_#{opt.project.package.owner}_#{opt.project.package.name}.js"}, ""]
+        ]]
     app.use express.static process.cwd()
     app.listen 8080
     console.log "started devserver on port 8080"

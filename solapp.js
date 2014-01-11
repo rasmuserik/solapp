@@ -12,16 +12,11 @@
   if (isNodeJs) {
     exports.about = {
       title: "SolApp",
-      description: "Framework for quickly creating apps",
-      keywords: ["framework", "html5", "phonegap"],
+      description: "Tool for quickly creating apps",
+      keywords: [],
       dependencies: {
-        async: "*",
         "coffee-script": "*",
         express: "3.x",
-        glob: "*",
-        request: "*",
-        "socket.io": "*",
-        "socket.io-client": "*",
         "uglify-js": "*",
         platformenv: "*",
         uutil: "*",
@@ -86,7 +81,7 @@
     ensureCoffeeSource = function(project) {
       if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
         console.log("writing " + project.name + ".coffee");
-        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/usr/bin/env coffee\nrequire(\"platformenv\").define global if typeof isNodeJs != \"boolean\"\nif isNodeJs \n  exports.about =\n    title: \"" + project.name + "\"\n    description: \"...\"\n    html5:\n      css: [\n        \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n        \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n      ]\n      js: [\n        \"//code.jquery.com/jquery-1.10.2.min.js\"\n        \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n      ]\n      files: [\n      ]\n    dependencies:\n      solapp: \"*\"\n\n#" + "{" + "{{1 Main\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()");
+        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/usr/bin/env coffee\nrequire(\"platformenv\").define global if typeof isNodeJs != \"boolean\"\n\n#" + "{" + "{{1 Actual source code\nif isNodeJs \n  exports.about =\n    title: \"" + project.name + "\"\n    description: \"...\"\n    html5:\n      css: [\n        \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n        \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n      ]\n      js: [\n        \"//code.jquery.com/jquery-1.10.2.min.js\"\n        \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n      ]\n      files: [\n      ]\n    dependencies:\n      solapp: \"*\"\n\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()");
       }
     };
     expandPackage = function(project) {
@@ -268,40 +263,13 @@
       return [
         "html", {
           manifest: "manifest.appcache"
-        }, [
-          "head", ["title", project["package"].title], [
-            "meta", {
-              "http-equiv": "content-type",
-              content: "text/html;charset=UTF-8"
-            }
-          ], [
-            "meta", {
-              "http-equiv": "content-type",
-              content: "IE=edge,chrome=1"
-            }
-          ], [
-            "meta", {
-              name: "HandheldFriendly",
-              content: "true"
-            }
-          ], [
-            "meta", {
-              name: "viewport",
-              content: "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" + (project["package"].userScalable ? "" : ", user-scalable=0")
-            }
-          ], [
-            "meta", {
-              name: "format-detection",
-              content: "telephone=no"
-            }
-          ]
-        ], ["body", ""]
+        }, htmlHead(project), ["body", ""]
       ];
     };
     htmlHead = function(project) {
       var head, str;
       head = [
-        ["title", project["package"].title], [
+        "head", ["title", project["package"].title], [
           "meta", {
             "http-equiv": "content-type",
             content: "text/html;charset=UTF-8"
@@ -323,9 +291,9 @@
           }
         ]
       ];
-      str = "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0";
+      str = "width=device-width, initial-scale=1.0";
       if (project["package"].userScalable) {
-        str += ", user-scalable=0";
+        str += ", minimum-scale=1.0, maximum-scale=1.0, user-scalable=0";
       }
       head.push([
         "meta", {
@@ -341,13 +309,13 @@
       app = express();
       app.all("/", function(req, res) {
         return res.end("<!DOCTYPE html>" + jsonml2html.jsonml2html([
-          "html", ["head"].concat(htmlHead(opt.project).concat([
+          "html", htmlHead(opt.project).concat([
             [
               "script", {
                 src: "//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.3/coffee-script.min.js"
               }, ""
             ], ["style#solappStyle", ""]
-          ])), [
+          ]), [
             "body", ["div#solappContent", ""], ["script", ["rawhtml", "global=window;exports={};isDevServer=true"]], [
               "script", {
                 type: "text/coffeescript",
@@ -366,6 +334,10 @@
               "script", {
                 type: "text/coffeescript"
               }, ["rawhtml", "require('solapp').devserverMain(" + (JSON.stringify(opt.project["package"])) + ")"]
+            ], [
+              "script", {
+                src: "//ssl.solsort.com/_devserver_" + opt.project["package"].owner + "_" + opt.project["package"].name + ".js"
+              }, ""
             ]
           ]
         ]));

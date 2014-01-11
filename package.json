@@ -1,21 +1,12 @@
 {
     "name": "solapp",
-    "version": "0.0.20",
+    "version": "0.0.21",
     "title": "SolApp",
-    "description": "Framework for quickly creating apps",
-    "keywords": [
-        "framework",
-        "html5",
-        "phonegap"
-    ],
+    "description": "Tool for quickly creating apps",
+    "keywords": [],
     "dependencies": {
-        "async": "*",
         "coffee-script": "*",
         "express": "3.x",
-        "glob": "*",
-        "request": "*",
-        "socket.io": "*",
-        "socket.io-client": "*",
         "uglify-js": "*",
         "platformenv": "*",
         "uutil": "*",
