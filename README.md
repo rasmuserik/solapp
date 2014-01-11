@@ -168,7 +168,7 @@ any additional properties will also be passed on into `package.json`
           "socket.io-client": "*"
           "uglify-js": "*"
           platformenv: "*"
-          uulib: "*"
+          uutil: "*"
         npmjs: true
         webjs: true
     

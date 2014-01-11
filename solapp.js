@@ -22,7 +22,7 @@
         "socket.io-client": "*",
         "uglify-js": "*",
         platformenv: "*",
-        uulib: "*"
+        uutil: "*"
       },
       npmjs: true,
       webjs: true,
