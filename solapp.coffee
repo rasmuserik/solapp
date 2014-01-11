@@ -147,12 +147,7 @@
 #
 # These are global properties, to be able to use uglify to remove them when preprocessing, ie. `if(isTesting) { ... }` will be fully removed in minified non-test builds...
 #
-if typeof isNodeJs != "boolean"
-  exports.globalDefines = (global) ->
-    global.isNodeJs = if process?.versions?.node then true else false
-    global.isDevServer = typeof isDevServer != "undefined" && isDevServer
-    global.isTesting = if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
-  exports.globalDefines global
+require("platformenv").define global if typeof isNodeJs != "boolean"
 
 #{{{1 Meta information
 if isNodeJs
@@ -169,6 +164,7 @@ if isNodeJs
       "socket.io": "*"
       "socket.io-client": "*"
       "uglify-js": "*"
+      "platformenv": "*"
     npmjs: true
     webjs: true
 
@@ -303,7 +299,7 @@ if isNodeJs
       console.log "writing #{project.name}.coffee"
       fs.writeFileSync "#{project.dirname}/#{project.name}.coffee", """
         #!/usr/bin/env coffee
-        require("solapp").globalDefines global if typeof isNodeJs != "boolean"
+        require("platformenv").define global if typeof isNodeJs != "boolean"
         if isNodeJs 
           exports.about =
             title: "#{project.name}"
@@ -343,7 +339,7 @@ if isNodeJs
     pkg.scripts.test ?= "node ./node_modules/solapp/solapp.js test"
     pkg.html5?.files ?= []
     pkg.dependencies ?= {}
-    pkg.dependencies.solapp ?= "*" if pkg.name != "solapp"
+    pkg.dependencies.platformenv = "*"
     pkg.repository =
       type: "git"
       url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
@@ -385,7 +381,7 @@ if isNodeJs
     result += "\n#{pkg.description}\n"
 
     for line in source.split("\n")
-      continue if line.trim() in ["#!/usr/bin/env coffee", "require(\"solapp\").globalDefines global if typeof isNodeJs != \"boolean\""]
+      continue if line.trim() in ["#!/usr/bin/env coffee", "require(\"platformenv\").define global if typeof isNodeJs != \"boolean\""]
 
       if (line.search /^\s*#/) == -1
         line = "    " + line

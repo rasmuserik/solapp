@@ -3,13 +3,7 @@
     __slice = [].slice;
 
   if (typeof isNodeJs !== "boolean") {
-    exports.globalDefines = function(global) {
-      var _ref;
-      global.isNodeJs = (typeof process !== "undefined" && process !== null ? (_ref = process.versions) != null ? _ref.node : void 0 : void 0) ? true : false;
-      global.isDevServer = typeof isDevServer !== "undefined" && isDevServer;
-      return global.isTesting = isNodeJs ? process.argv.slice(2) : location.hash.slice(1).split("/");
-    };
-    exports.globalDefines(global);
+    require("platformenv").define(global);
   }
 
   if (isNodeJs) {
@@ -25,7 +19,8 @@
         request: "*",
         "socket.io": "*",
         "socket.io-client": "*",
-        "uglify-js": "*"
+        "uglify-js": "*",
+        "platformenv": "*"
       },
       npmjs: true,
       webjs: true,
@@ -227,11 +222,11 @@
     ensureCoffeeSource = function(project) {
       if (!fs.existsSync("" + project.dirname + "/" + project.name + ".coffee")) {
         console.log("writing " + project.name + ".coffee");
-        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/usr/bin/env coffee\nrequire(\"solapp\").globalDefines global if typeof isNodeJs != \"boolean\"\nif isNodeJs \n  exports.about =\n    title: \"" + project.name + "\"\n    description: \"...\"\n    html5:\n      css: [\n        \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n        \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n      ]\n      js: [\n        \"//code.jquery.com/jquery-1.10.2.min.js\"\n        \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n      ]\n      files: [\n      ]\n    dependencies:\n      solapp: \"*\"\n\n#" + "{" + "{{1 Main\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()");
+        return fs.writeFileSync("" + project.dirname + "/" + project.name + ".coffee", "#!/usr/bin/env coffee\nrequire(\"platformenv\").define global if typeof isNodeJs != \"boolean\"\nif isNodeJs \n  exports.about =\n    title: \"" + project.name + "\"\n    description: \"...\"\n    html5:\n      css: [\n        \"//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css\"\n        \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css\"\n      ]\n      js: [\n        \"//code.jquery.com/jquery-1.10.2.min.js\"\n        \"//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js\"\n      ]\n      files: [\n      ]\n    dependencies:\n      solapp: \"*\"\n\n#" + "{" + "{{1 Main\nexports.main = (opt) ->\n  opt.setStyle {h1: {backgroundColor: \"green\"}}\n  opt.setContent [\"div\", [\"h1\", \"hello world\"]]\n  opt.done()");
       }
     };
     expandPackage = function(project) {
-      var pkg, _base, _base1, _base2, _ref;
+      var pkg, _base, _base1, _ref;
       pkg = project["package"] = {
         name: project.name,
         version: project["package"].version || "0.0.0"
@@ -267,11 +262,7 @@
       if (pkg.dependencies == null) {
         pkg.dependencies = {};
       }
-      if (pkg.name !== "solapp") {
-        if ((_base2 = pkg.dependencies).solapp == null) {
-          _base2.solapp = "*";
-        }
-      }
+      pkg.dependencies.platformenv = "*";
       return pkg.repository = {
         type: "git",
         url: "http://github.com/" + pkg.owner + "/" + pkg.name + ".git"
@@ -328,7 +319,7 @@
       _ref = source.split("\n");
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         line = _ref[_i];
-        if ((_ref1 = line.trim()) === "#!/usr/bin/env coffee" || _ref1 === "require(\"solapp\").globalDefines global if typeof isNodeJs != \"boolean\"") {
+        if ((_ref1 = line.trim()) === "#!/usr/bin/env coffee" || _ref1 === "require(\"platformenv\").define global if typeof isNodeJs != \"boolean\"") {
           continue;
         }
         if ((line.search(/^\s*#/)) === -1) {

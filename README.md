@@ -152,12 +152,6 @@ Information about current environment, ie. - are we running on nodejs, web, runn
 These are global properties, to be able to use uglify to remove them when preprocessing, ie. `if(isTesting) { ... }` will be fully removed in minified non-test builds...
 
 
-    if typeof isNodeJs != "boolean"
-      exports.globalDefines = (global) ->
-        global.isNodeJs = if process?.versions?.node then true else false
-        global.isDevServer = typeof isDevServer != "undefined" && isDevServer
-        global.isTesting = if isNodeJs then process.argv.slice(2) else location.hash.slice(1).split "/"
-      exports.globalDefines global
     
 
 # Meta information
@@ -176,6 +170,7 @@ These are global properties, to be able to use uglify to remove them when prepro
           "socket.io": "*"
           "socket.io-client": "*"
           "uglify-js": "*"
+          "platformenv": "*"
         npmjs: true
         webjs: true
     
@@ -392,7 +387,7 @@ TODO: probably remove this one, when solapp-object is passed to main
         pkg.scripts.test ?= "node ./node_modules/solapp/solapp.js test"
         pkg.html5?.files ?= []
         pkg.dependencies ?= {}
-        pkg.dependencies.solapp ?= "*" if pkg.name != "solapp"
+        pkg.dependencies.platformenv = "*"
         pkg.repository =
           type: "git"
           url: "http://github.com/#{pkg.owner}/#{pkg.name}.git"
@@ -440,7 +435,7 @@ TODO: probably remove this one, when solapp-object is passed to main
         result += "\n#{pkg.description}\n"
     
         for line in source.split("\n")
-          continue if line.trim() in ["#!/usr/bin/env coffee", "require(\"solapp\").globalDefines global if typeof isNodeJs != \"boolean\""]
+          continue if line.trim() in ["#!/usr/bin/env coffee", "require(\"platformenv\").define global if typeof isNodeJs != \"boolean\""]
     
           if (line.search /^\s*#/) == -1
             line = "    " + line
