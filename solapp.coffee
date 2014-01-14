@@ -120,6 +120,7 @@
 # - 0.1 first working prototype, running 360º and uccorg-backend etc.
 #   - stuff needed for 360º
 #   - stuff needed for uccorg backend
+#   - make sure that html5-csses/jses are include in devserver - use bower!
 #   - api-creation-library
 #   - manager server - keep-alive/restart
 #     - start/restart/stop "app-dirname"
@@ -130,7 +131,6 @@
 # - later
 #   - cleanup dev-server
 #   - autoreload devserver content on file change, restart/execute server
-#   - make sure that html5-csses/jses are include in devserver
 #   - generate table-of-contents in readme
 #   - url in exports.about creates link from title in readme
 #   - generate index.html
