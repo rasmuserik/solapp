@@ -477,12 +477,13 @@ TODO: probably remove this one, when solapp-object is passed to main
             ]]
         app.use express.static process.cwd()
         app.listen 8080
+        opt.project.module.devServerMain?(app)
         console.log "started devserver on port 8080"
     
 
 ### Code running in browser
 
-    if isDevServer
+    if isDevServer and !isNodeJs
       solapp.devserverMain = (pkg) ->
         opt =
           args: []

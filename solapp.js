@@ -324,7 +324,7 @@
       return head;
     };
     devserver = function(opt) {
-      var app, express, head, module, _, _ref;
+      var app, express, head, module, _, _base, _ref;
       express = require("express");
       app = express();
       head = htmlHead(opt.project);
@@ -377,11 +377,14 @@
       });
       app.use(express["static"](process.cwd()));
       app.listen(8080);
+      if (typeof (_base = opt.project.module).devServerMain === "function") {
+        _base.devServerMain(app);
+      }
       return console.log("started devserver on port 8080");
     };
   }
 
-  if (isDevServer) {
+  if (isDevServer && !isNodeJs) {
     solapp.devserverMain = function(pkg) {
       var opt, _ref;
       opt = {
