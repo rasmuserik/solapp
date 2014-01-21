@@ -1,6 +1,6 @@
 {
     "name": "solapp",
-    "version": "0.0.25",
+    "version": "0.0.26",
     "scripts": {
         "start": "node solapp.js start",
         "test": "node solapp.js test"

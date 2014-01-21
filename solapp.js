@@ -376,11 +376,11 @@
         ]));
       });
       app.use(express["static"](process.cwd()));
-      app.listen(8080);
+      app.listen(4444);
       if (typeof (_base = opt.project.module).devServerMain === "function") {
         _base.devServerMain(app);
       }
-      return console.log("started devserver on port 8080");
+      return console.log("started devserver on port 4444");
     };
   }
 

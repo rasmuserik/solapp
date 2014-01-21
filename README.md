@@ -52,7 +52,7 @@ any additional properties will also be passed on into `package.json`
 ## Intended features
 
 - commands (`solapp command`):
-  - `start` runs in node, and starts local development server on port 8080, watch file, and automatic reload on change.
+  - `start` runs in node, and starts local development server on port 4444, watch file, and automatic reload on change.
   - `test` runs unit tests
   - `commit ...commitmsg...` run tests, increase minor version, `build`, git commit -a, git pull, git push
   - `build` build all items
@@ -476,9 +476,9 @@ TODO: probably remove this one, when solapp-object is passed to main
               ["script", {src: "//ssl.solsort.com/_devserver_#{opt.project.about.owner}_#{opt.project.about.name}.js"}, ""]
             ]]
         app.use express.static process.cwd()
-        app.listen 8080
+        app.listen 4444
         opt.project.module.devServerMain?(app)
-        console.log "started devserver on port 8080"
+        console.log "started devserver on port 4444"
     
 
 ### Code running in browser
