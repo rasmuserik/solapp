@@ -310,7 +310,7 @@ TODO: probably remove this one, when solapp-object is passed to main
         write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
         write "manifest.appcache", genCacheManifest project if project.about.html5
         write "#{project.name}.js", compile project if project.about.npmjs
-        write "#{project.name}.min.js", webjs project if project.about.webjs
+        write "#{project.name}.web.js", webjs project if project.about.webjs
     
 
 ### ensureGit
@@ -412,8 +412,10 @@ TODO: probably remove this one, when solapp-object is passed to main
       
         ast.figure_out_scope()
         ast.compute_char_frequency()
-        ast.mangle_names()
-        project.webjs = ast.print_to_string({ascii_only:true,inline_script:true})
+
+ast.mangle_names()
+
+        project.webjs = ast.print_to_string({ascii_only:true,inline_script:true,beautify:true})
     
 
 ## devserver

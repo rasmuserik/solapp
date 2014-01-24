@@ -290,7 +290,7 @@ if isNodeJs
     write ".travis.yml", "language: node_js\nnode_js:\n  - 0.10"
     write "manifest.appcache", genCacheManifest project if project.about.html5
     write "#{project.name}.js", compile project if project.about.npmjs
-    write "#{project.name}.min.js", webjs project if project.about.webjs
+    write "#{project.name}.web.js", webjs project if project.about.webjs
 
   #{{{3 ensureGit
   ensureGit = (project, done) ->
@@ -380,8 +380,8 @@ if isNodeJs
   
     ast.figure_out_scope()
     ast.compute_char_frequency()
-    ast.mangle_names()
-    project.webjs = ast.print_to_string({ascii_only:true,inline_script:true})
+    #ast.mangle_names()
+    project.webjs = ast.print_to_string({ascii_only:true,inline_script:true,beautify:true})
 
   #{{{2 devserver
   #{{{3 devserverJsonml - create the html jsonml-object for the dev-server

@@ -167,7 +167,7 @@
         write("" + project.name + ".js", compile(project));
       }
       if (project.about.webjs) {
-        return write("" + project.name + ".min.js", webjs(project));
+        return write("" + project.name + ".web.js", webjs(project));
       }
     };
     ensureGit = function(project, done) {
@@ -273,10 +273,10 @@
       ast = ast.transform(compressor);
       ast.figure_out_scope();
       ast.compute_char_frequency();
-      ast.mangle_names();
       return project.webjs = ast.print_to_string({
         ascii_only: true,
-        inline_script: true
+        inline_script: true,
+        beautify: true
       });
     };
     devserverJsonml = function(project) {
